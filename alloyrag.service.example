@@ -1,0 +1,30 @@
+[Unit]
+Description=AlloyRAG XYJ Service
+After=network.target
+
+[Service]
+Type=simple
+User=netman
+# Memory settings
+MemoryHigh=8G
+MemoryMax=12G
+
+# Set the AlloyRAG installation directory (change this to match your installation path)
+Environment="ALLOYRAG_HOME=/home/netman/alloyrag-xyj"
+
+# Set Environment to your Python virtual environment
+Environment="PATH=${ALLOYRAG_HOME}/.venv/bin"
+WorkingDirectory=${ALLOYRAG_HOME}
+ExecStart=${ALLOYRAG_HOME}/.venv/bin/alloyrag-server
+# ExecStart=${ALLOYRAG_HOME}/.venv/bin/alloyrag-gunicorn
+
+# Kill mode require ExecStart must be gunicorn or unvicorn main process
+KillMode=process
+ExecStop=/bin/kill -s TERM $MAINPID
+TimeoutStopSec=60
+
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,10 @@
+apiVersion: v2
+name: alloyrag
+description: A Helm chart for AlloyRAG, an efficient and lightweight RAG system
+type: application
+version: 0.1.1
+appVersion: "1.0.0"
+maintainers:
+  - name: AlloyRAG Team
+  - name: earayu
+    email: earayu@gmail.com
