@@ -1,11 +1,11 @@
 -e .[api]
-pandas
-openpyxl
-httpx
 beautifulsoup4
-trafilatura
-python-dotenv
-sentence-transformers
+httpx
+openpyxl
+pandas
 pypdf
 python-docx
+python-dotenv
 python-pptx
+sentence-transformers
+trafilatura

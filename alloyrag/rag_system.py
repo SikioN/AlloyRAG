@@ -1,5 +1,4 @@
 import os
-import sys
 import functools
 import numpy as np
 from dotenv import load_dotenv
@@ -14,7 +13,9 @@ from alloyrag.prompt import PROMPTS
 load_dotenv()
 
 # Override default entity types guidance to focus on Material Science
-PROMPTS["default_entity_types_guidance"] = """Classify each entity using one of the following types. If no type fits, use `Other`.
+PROMPTS[
+    "default_entity_types_guidance"
+] = """Classify each entity using one of the following types. If no type fits, use `Other`.
 
 - Alloy: Alloy names, chemical systems, compositions, materials (e.g., Ni-based superalloy, Ti-6Al-4V, steel).
 - Mode: Process modes, parameters, temperatures, heat treatments, conditions (e.g., hot rolling, annealing at 1000°C, aging for 4h, casting, cooling rate).
@@ -66,20 +67,28 @@ Also, identify and highlight any "gaps in data" (пробелы в данных)
 {context_data}
 """
 
+
 class LocalSentenceTransformerEmbedder:
     """Custom embedding wrapper that loads SentenceTransformer locally.
     Bypasses slow Ollama model pull for embeddings.
     """
+
     def __init__(self, model_name="all-MiniLM-L6-v2"):
         logger.info(f"Initializing local SentenceTransformer model: {model_name}...")
         from sentence_transformers import SentenceTransformer
+
         self.model = SentenceTransformer(model_name)
         self.model_name = model_name
         self.embedding_dim = self.model.get_embedding_dimension()
-        logger.info(f"SentenceTransformer {model_name} initialized. Dimension: {self.embedding_dim}")
-        
-    async def __call__(self, texts: list[str], context: str = "document", **kwargs) -> np.ndarray:
+        logger.info(
+            f"SentenceTransformer {model_name} initialized. Dimension: {self.embedding_dim}"
+        )
+
+    async def __call__(
+        self, texts: list[str], context: str = "document", **kwargs
+    ) -> np.ndarray:
         import asyncio
+
         # sentence-transformers encode is synchronous, run in executor to avoid blocking the event loop
         loop = asyncio.get_event_loop()
         # Add prefixes if model expects them (like e5 models which expect "query: " or "passage: ")
@@ -93,14 +102,15 @@ class LocalSentenceTransformerEmbedder:
                     processed_texts.append(f"passage: {text}")
             else:
                 processed_texts.append(text)
-                
+
         embeddings = await loop.run_in_executor(
-            None, 
-            lambda: self.model.encode(processed_texts, show_progress_bar=False)
+            None, lambda: self.model.encode(processed_texts, show_progress_bar=False)
         )
         return np.array(embeddings)
 
+
 _rag_instance = None
+
 
 def get_rag_instance() -> AlloyRAG:
     global _rag_instance
@@ -109,11 +119,10 @@ def get_rag_instance() -> AlloyRAG:
 
     working_dir = os.getenv("WORKING_DIR", "./rag_storage")
     input_dir = os.getenv("INPUT_DIR", "./inputs")
-    
+
     os.makedirs(working_dir, exist_ok=True)
     os.makedirs(input_dir, exist_ok=True)
 
-    llm_binding = os.getenv("LLM_BINDING", "ollama")
     llm_model = os.getenv("LLM_MODEL", "llama3.2:latest")
     llm_host = os.getenv("LLM_BINDING_HOST", "http://localhost:11434")
 
@@ -125,9 +134,9 @@ def get_rag_instance() -> AlloyRAG:
         "host": llm_host,
         "timeout": 300,
         "options": {
-            "num_ctx": 8192,         # Expand context window (default in Ollama = 2048, too small)
-            "num_predict": 2048,     # Max tokens in response
-            "temperature": 0.1,      # Low temperature for factual/consistent answers
+            "num_ctx": 8192,  # Expand context window (default in Ollama = 2048, too small)
+            "num_predict": 2048,  # Max tokens in response
+            "temperature": 0.1,  # Low temperature for factual/consistent answers
         },
     }
 
@@ -143,24 +152,25 @@ def get_rag_instance() -> AlloyRAG:
             embedding_dim=embedder.embedding_dim,
             func=embedder,
             model_name=embedding_model,
-            supports_asymmetric=True
+            supports_asymmetric=True,
         )
     else:
         # Fallback to Ollama embedding
         from alloyrag.llm.ollama import ollama_embed
+
         embedding_func = EmbeddingFunc(
             embedding_dim=embedding_dim,
             func=functools.partial(
-                ollama_embed.func,
-                embed_model=embedding_model,
-                host=llm_host
+                ollama_embed.func, embed_model=embedding_model, host=llm_host
             ),
             model_name=embedding_model,
-            supports_asymmetric=True
+            supports_asymmetric=True,
         )
 
     # 3. Create AlloyRAG Instance
-    logger.info(f"Constructing AlloyRAG: LLM={llm_model}, Embeddings={embedding_model} ({embedding_dim} dim)...")
+    logger.info(
+        f"Constructing AlloyRAG: LLM={llm_model}, Embeddings={embedding_model} ({embedding_dim} dim)..."
+    )
     _rag_instance = AlloyRAG(
         working_dir=working_dir,
         llm_model_func=llm_model_func,
@@ -173,8 +183,9 @@ def get_rag_instance() -> AlloyRAG:
         doc_status_storage="JsonDocStatusStorage",
         vlm_process_enable=False,
     )
-    
+
     return _rag_instance
+
 
 if __name__ == "__main__":
     # Test initialization
