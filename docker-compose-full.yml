@@ -44,6 +44,7 @@ services:
       QDRANT_URL: "http://host.docker.internal:6333"
       OPENSEARCH_HOSTS: "host.docker.internal:9200"
       MONGO_URI: "mongodb://root:root@host.docker.internal:27017/"
+      DOCLING_ENDPOINT: "http://docling-serve:5001"
     depends_on:
       vllm-embed:
         condition: service_healthy
