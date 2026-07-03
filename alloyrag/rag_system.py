@@ -12,53 +12,58 @@ from alloyrag.prompt import PROMPTS
 # Load environment variables
 load_dotenv()
 
-# Override default entity types guidance to focus on Material Science
+# Override default entity types guidance to focus on Metallurgical R&D Case Study
 PROMPTS[
     "default_entity_types_guidance"
 ] = """Classify each entity using one of the following types. If no type fits, use `Other`.
 
-- Alloy: Alloy names, chemical systems, compositions, materials (e.g., Ni-based superalloy, Ti-6Al-4V, steel).
-- Mode: Process modes, parameters, temperatures, heat treatments, conditions (e.g., hot rolling, annealing at 1000°C, aging for 4h, casting, cooling rate).
-- Property: Material properties, characteristics, measurements, mechanical/physical/chemical tests (e.g., tensile strength, hardness, microhardness, elongation, yield strength, yield stress).
-- Equipment: Experimental equipment, installations, machines, microscopes, furnaces, testing rigs.
-- ResearchTeam: Research groups, laboratories, scientists, investigators, authors, institutes.
-- Outcome: Experimental results, conclusions, effect descriptions, microstructural features (e.g., grain growth, phase transformation, recrystallization, dislocation, crack formation).
-- Concept: Abstract ideas, theories, principles, beliefs (e.g., thermodynamic equilibrium, recrystallization kinetics, grain boundaries)."""
+- Material: Metals, alloys, compositions, solutions, chemical compounds, or residues (e.g., Ni-based superalloy, сульфаты, католит, медный штейн, никелевая руда).
+- Process: Technological processes, chemical reactions, experimental modes, or treatments (e.g., кучное выщелачивание, электроэкстракция, пиролиз, обессоливание воды).
+- Equipment: Experimental or industrial setups, furnaces, cells, or measurement rigs (e.g., ванны электроэкстракции, печь взвешенной плавки (ПВП), диафрагменные ячейки).
+- Property: Physical, mechanical, chemical, or economic properties (e.g., сухой остаток, выход металла, капитальные затраты).
+- Experiment: Specific R&D test protocols, parameter sets, or trial runs (e.g., опыт №5, выщелачивание при 90°C).
+- Publication: Patents, scientific papers, technical reports, or theses (e.g., Доклад Вострикова, патент РФ №12345).
+- Expert: Laboratory teams, scientists, investigators, or competency owners (e.g., Институт Гипроникель, ТренингБутик, Востриков Н.М.).
+- Facility: Geographical locations, plants, laboratories, or factories (e.g., Россия, Харьявалта, обогатительная фабрика).
+- Condition: Environmental, geographic, or physical conditions (e.g., холодный климат, глубокие горизонты, мировая практика, отечественная практика).
+- Parameter: Numeric metrics, ranges, or targets (e.g., сухой остаток <= 1000 мг/дм³, сульфаты 200-300 мг/л).
+- Indicator: Technical or economic performance indicators (e.g., производительность: от 100 т/сут, капекс, опекс).
 
-# Customize RAG response prompts to guide the LLM to highlight alloy-property relations and gaps
+During relationship extraction, always represent relationships using these keywords:
+- uses_material: A process/equipment uses a specific material.
+- operates_at_condition: A process/experiment runs at specific parameters/conditions (temperature, flow rate, concentrations).
+- produces_output: A process/experiment yields a specific product, property, or outcome.
+- described_in: A process, material, or experiment is documented in a publication.
+- validated_by: A fact or relation is validated by an experiment, expert, or publication.
+- contradicts: Highlight conflicting facts or parameters across different sources."""
+
+# Customize RAG response prompts to guide the LLM to highlight metallurgical relations and gaps
 PROMPTS["rag_response"] = """---Role---
 
-You are an expert AI assistant specializing in materials science and metallurgy. Your primary function is to answer user queries accurately by using both the structured Knowledge Graph and the text snippets in the provided Context.
+You are an expert AI assistant specializing in metallurgy, mineral processing, and industrial gas/water treatment. Your primary function is to answer user queries accurately by using the structured Knowledge Graph and the text snippets in the provided Context.
 
 ---Goal---
 
-Generate a comprehensive, well-structured answer to the user query.
-Specifically highlight relations between:
-1. Alloys (сплавы)
-2. Modes of processing (режимы обработки)
-3. Resulting Properties (свойства)
-Also, identify and highlight any "gaps in data" (пробелы в данных) if the query asks about combinations of alloys, modes, or properties that are not present in the context.
+Generate a comprehensive, well-structured, and precise response in Russian to the user query.
+
+Specifically highlight:
+1. Relations between Materials, Processes, Equipment, and resulting Properties (using uses_material, operates_at_condition, produces_output relationships).
+2. Numeric thresholds, ranges, and target values (e.g. concentrations, flow rates, temperatures, costs).
+3. Geographical split: distinguish domestic (отечественная практика) vs. foreign (зарубежная практика) solutions where applicable.
+4. "Gaps in data" (пробелы в данных) if the query asks about combinations of materials, modes, or properties that are not present or documented.
 
 ---Instructions---
 
-1. Step-by-Step Instruction:
-  - Carefully determine the user's query intent to fully understand the user's information need.
-  - Scrutinize both `Knowledge Graph Data` and `Document Chunks` in the Context. Identify and extract all pieces of information that are directly relevant.
-  - Structure the response with clear headings (e.g., Summary, Alloys and Processing Modes, Resulting Properties, Gaps/Missing Data if applicable).
-  - Track the reference_id of the document chunks that support your facts and cite them.
-  - Generate a references section at the end.
+1. Step-by-Step response construction:
+   - Analyze the query's intent (e.g., checking for specific concentration limits, circulation rates, or gold/silver distribution).
+   - Review both `Knowledge Graph Data` and `Document Chunks`. Match entities and numeric values carefully.
+   - Structure the response with clear headings (e.g., Суммарный ответ, Технологические решения, Параметры и показатели, Отечественная vs. Зарубежная практика, Пробелы в данных / Ограничения).
+   - Cite source documents with `[n]` referencing the source ID or title.
+   - Output a list of sources at the end under `### Источники`.
 
 2. Content & Grounding:
-  - Strictly adhere to the provided context; DO NOT invent, assume, or infer any information not explicitly stated.
-  - If the answer cannot be found in the Context, state clearly that you do not have enough information to answer. Do not guess.
-
-3. Formatting & Language:
-  - The response MUST be in the same language as the user query (typically Russian).
-  - Use Markdown (headings, bold text, lists).
-
-4. References Section Format:
-  - Under heading: `### References` or `### Источники` (match query language).
-  - Format: `* [n] Document Title`
+   - Strictly adhere to the provided context; DO NOT invent or assume any facts.
+   - If information for a specific constraint (e.g. "≤1000 мг/дм³") is not found, state that explicitly.
 
 {user_prompt}
 
