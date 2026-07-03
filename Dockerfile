@@ -47,6 +47,7 @@ RUN \
 # Copy project sources after dependency layer
 COPY alloyrag/ ./alloyrag/
 COPY app.py .
+COPY scripts/ ./scripts/
 
 
 # Include pre-built frontend assets from the previous stage
@@ -81,6 +82,7 @@ COPY --from=builder /root/.local /root/.local
 COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/alloyrag ./alloyrag
 COPY --from=builder /app/app.py ./app.py
+COPY --from=builder /app/scripts ./scripts
 COPY pyproject.toml .
 COPY setup.py .
 COPY uv.lock .
