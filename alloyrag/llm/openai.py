@@ -1034,19 +1034,57 @@ async def openai_embed(
         is_yandex = base_url and ("yandex" in base_url or "yandex" in model)
 
         if is_yandex:
-            # Yandex tokenizer counts ~30% more tokens than tiktoken for Russian text.
-            # Apply conservative character-based truncation as a hard safety net:
-            # 2048 token limit / 1.3 overhead factor * ~3 chars/token ≈ 4700 chars
-            _YANDEX_CHAR_LIMIT = 4500
+            # Yandex Cloud hard limit: 2048 tokens per embedding request.
+            # Tiktoken uses GPT-4 vocabulary which is different from Yandex's tokenizer,
+            # so we must use Yandex's own free Tokenize API to count tokens precisely.
+            _YANDEX_TOKEN_LIMIT = 2000  # safe margin below the 2048 hard limit
+
+            async def _count_yandex_tokens(text: str) -> int:
+                """Count tokens using the free Yandex Tokenize API."""
+                import httpx
+                tokenize_url = "https://llm.api.cloud.yandex.net/foundationModels/v1/tokenize"
+                payload = {"modelUri": model, "text": text}
+                headers_tok = {
+                    "Authorization": f"Api-Key {api_key}",
+                    "Content-Type": "application/json",
+                }
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    resp = await client.post(tokenize_url, json=payload, headers=headers_tok)
+                    resp.raise_for_status()
+                    data = resp.json()
+                    return len(data.get("tokens", []))
+
+            async def _truncate_to_yandex_limit(text: str) -> str:
+                """Truncate text so it fits within Yandex token limit using binary search."""
+                try:
+                    token_count = await _count_yandex_tokens(text)
+                    if token_count <= _YANDEX_TOKEN_LIMIT:
+                        return text
+                    # Binary search for the right truncation point
+                    low, high = 0, len(text)
+                    while low < high - 10:
+                        mid = (low + high) // 2
+                        count = await _count_yandex_tokens(text[:mid])
+                        if count <= _YANDEX_TOKEN_LIMIT:
+                            low = mid
+                        else:
+                            high = mid
+                    truncated = text[:low]
+                    logger.info(
+                        f"Yandex embed: text truncated from {len(text)} to {len(truncated)} chars "
+                        f"({token_count} → ≤{_YANDEX_TOKEN_LIMIT} Yandex tokens)"
+                    )
+                    return truncated
+                except Exception as e:
+                    # Fallback: conservative char-based limit (2000 tokens * 4 chars/token)
+                    logger.warning(
+                        f"Yandex tokenizer API failed ({e}), falling back to char-based truncation"
+                    )
+                    return text[:8000]
 
             # Execute embedding requests in parallel for each text individually
             async def embed_single(text):
-                # Hard character truncation to stay within Yandex token limit
-                if len(text) > _YANDEX_CHAR_LIMIT:
-                    logger.debug(
-                        f"Yandex embed: truncating text from {len(text)} to {_YANDEX_CHAR_LIMIT} chars"
-                    )
-                    text = text[:_YANDEX_CHAR_LIMIT]
+                text = await _truncate_to_yandex_limit(text)
                 single_params = {**api_params, "input": [text]}
                 return await openai_async_client.embeddings.create(**single_params)
 
