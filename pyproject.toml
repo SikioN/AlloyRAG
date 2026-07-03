@@ -42,7 +42,6 @@ dependencies = [
     "xlsxwriter>=3.1.0",
     "beautifulsoup4",
     "xlrd>=2.0.1",
-    "sentence-transformers",
 ]
 
 [project.optional-dependencies]
@@ -132,6 +131,7 @@ offline-llm = [
     "llama-index-llms-openai>=0.6.12",  # Explicitly require version that supports openai 2.x
     "google-api-core>=2.0.0,<3.0.0",
     "google-genai>=1.0.0,<3.0.0",
+    "sentence-transformers",
 ]
 
 offline = [
