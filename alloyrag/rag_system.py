@@ -191,13 +191,17 @@ def get_rag_instance() -> AlloyRAG:
         )
     elif embedding_binding == "openai":
         from alloyrag.llm.openai import openai_embed
+        _embedding_token_limit_str = os.getenv("EMBEDDING_TOKEN_LIMIT", "2048")
+        _embedding_max_token_size = int(_embedding_token_limit_str) if _embedding_token_limit_str else 2048
         embedding_func = EmbeddingFunc(
             embedding_dim=embedding_dim,
+            max_token_size=_embedding_max_token_size,
             func=functools.partial(
                 openai_embed.func,
                 model=embedding_model,
                 base_url=os.getenv("EMBEDDING_BINDING_HOST") or os.getenv("LLM_BINDING_HOST"),
                 api_key=os.getenv("EMBEDDING_BINDING_API_KEY") or os.getenv("LLM_BINDING_API_KEY"),
+                max_token_size=_embedding_max_token_size,
             ),
             model_name=embedding_model,
             supports_asymmetric=True,
