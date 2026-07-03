@@ -72,6 +72,22 @@ Specifically highlight:
 {context_data}
 """
 
+# Dynamic prompt injection for Entity Extraction (adds numerical constraints and geography rules)
+extraction_guidance = """
+  - **Numeric & Geographic Focus:** Pay close attention to numerical values, ranges, and units (e.g., concentrations like "200–300 мг/л", limits like "≤1000 мг/дм³", flow rates, temperatures). Always include these numeric values and their exact units in the descriptions.
+  - **Geographic & Practice Context:** Distinguish between domestic (отечественная практика, РФ) and foreign (зарубежная практика, импортные аналоги, конкретные страны) technologies and record this in the entity description and facility/condition relationships.
+"""
+
+if "entity_extraction_json_system_prompt" in PROMPTS:
+    PROMPTS["entity_extraction_json_system_prompt"] = PROMPTS[
+        "entity_extraction_json_system_prompt"
+    ].replace("1. **Entity Extraction:**", "1. **Entity Extraction:**" + extraction_guidance)
+
+if "entity_extraction_system_prompt" in PROMPTS:
+    PROMPTS["entity_extraction_system_prompt"] = PROMPTS[
+        "entity_extraction_system_prompt"
+    ].replace("1. **Entity Extraction:**", "1. **Entity Extraction:**" + extraction_guidance)
+
 
 class LocalSentenceTransformerEmbedder:
     """Custom embedding wrapper that loads SentenceTransformer locally.
@@ -196,10 +212,10 @@ def get_rag_instance() -> AlloyRAG:
         llm_model_name=llm_model,
         llm_model_kwargs=llm_model_kwargs,
         embedding_func=embedding_func,
-        kv_storage="JsonKVStorage",
-        vector_storage="NanoVectorDBStorage",
-        graph_storage="NetworkXStorage",
-        doc_status_storage="JsonDocStatusStorage",
+        kv_storage=os.getenv("ALLOYRAG_KV_STORAGE") or os.getenv("KV_STORAGE") or "JsonKVStorage",
+        vector_storage=os.getenv("ALLOYRAG_VECTOR_STORAGE") or os.getenv("VECTOR_STORAGE") or "NanoVectorDBStorage",
+        graph_storage=os.getenv("ALLOYRAG_GRAPH_STORAGE") or os.getenv("GRAPH_STORAGE") or "NetworkXStorage",
+        doc_status_storage=os.getenv("ALLOYRAG_DOC_STATUS_STORAGE") or os.getenv("DOC_STATUS_STORAGE") or "JsonDocStatusStorage",
         vlm_process_enable=False,
     )
 
