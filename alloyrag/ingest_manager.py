@@ -275,6 +275,8 @@ async def ascan_and_ingest_inputs():
         return
 
     logger.info(f"Found {len(files_in_dir)} file(s) in inputs.")
+    rag = get_rag_instance()
+    await rag.initialize_storages()
     states_changed = False
 
     for filepath in files_in_dir:
@@ -282,14 +284,26 @@ async def ascan_and_ingest_inputs():
         current_md5 = calculate_md5(filepath)
         mtime = os.path.getmtime(filepath)
 
-        # Check if already processed
+        # Check if already processed and exists in DB
         state = states.get(filepath)
+        doc_id = os.path.basename(filepath)
+        db_doc = await rag.doc_status.get_by_id(doc_id)
+        
+        db_status = ""
+        if db_doc:
+            db_status_raw = db_doc.get("status", "")
+            if hasattr(db_status_raw, "value"):
+                db_status = db_status_raw.value
+            else:
+                db_status = str(db_status_raw)
+
         if (
             state
             and state.get("md5") == current_md5
             and state.get("status") == "success"
+            and db_status == "processed"
         ):
-            logger.info(f"File '{filename}' is unchanged. Skipping.")
+            logger.info(f"File '{filename}' is unchanged and successfully processed. Skipping.")
             continue
 
         logger.info(f"Processing new or changed file: '{filename}'...")
