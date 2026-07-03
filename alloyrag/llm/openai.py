@@ -113,6 +113,12 @@ EMBEDDING_USE_BASE64: bool = os.getenv("EMBEDDING_USE_BASE64", "true").lower() i
     "yes",
 )
 
+EMBEDDING_SEND_DIM: bool = os.getenv("EMBEDDING_SEND_DIM", "false").lower() in (
+    "true",
+    "1",
+    "yes",
+)
+
 
 def _get_tiktoken_encoding_for_model(model: str) -> Any:
     """Get tiktoken encoding for the specified model with caching.
@@ -1018,8 +1024,8 @@ async def openai_embed(
         # OpenAI client defaults to base64, so we must explicitly set it to "float" if disabled
         api_params["encoding_format"] = "base64" if EMBEDDING_USE_BASE64 else "float"
 
-        # Add dimensions parameter only if embedding_dim is provided
-        if embedding_dim is not None:
+        # Add dimensions parameter only if embedding_dim is provided and EMBEDDING_SEND_DIM is true
+        if embedding_dim is not None and EMBEDDING_SEND_DIM:
             api_params["dimensions"] = embedding_dim
 
         # Make API call
