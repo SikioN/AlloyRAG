@@ -42,6 +42,7 @@ dependencies = [
     "xlsxwriter>=3.1.0",
     "beautifulsoup4",
     "xlrd>=2.0.1",
+    "sentence-transformers",
 ]
 
 [project.optional-dependencies]
