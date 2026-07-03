@@ -10,110 +10,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from alloyrag.rag_system import get_rag_instance
 from alloyrag.utils import logger
-
-async def merge_nodes_networkx(graph_storage, synonym_dict: dict):
-    """Merge nodes in NetworkX storage."""
-    import networkx as nx
-    from alloyrag.kg.networkx_impl import NetworkXStorage
-
-    nx_graph = await graph_storage._get_graph()
-    logger.info(f"Current NetworkX graph: {len(nx_graph.nodes)} nodes, {len(nx_graph.edges)} edges")
-
-    modified = False
-    for alias, canonical in synonym_dict.items():
-        # Find exact or case-insensitive matches for alias in graph nodes
-        matching_aliases = [n for n in nx_graph.nodes if n.lower() == alias.lower()]
-        if not matching_aliases:
-            continue
-
-        for alias_node in matching_aliases:
-            if alias_node == canonical:
-                continue
-
-            logger.info(f"Merging NetworkX node '{alias_node}' into '{canonical}'...")
-            
-            # Ensure canonical node exists
-            if canonical not in nx_graph:
-                # Copy attributes from alias
-                attrs = nx_graph.nodes[alias_node].copy()
-                nx_graph.add_node(canonical, **attrs)
-            else:
-                # Merge descriptions
-                canonical_desc = nx_graph.nodes[canonical].get("description", "")
-                alias_desc = nx_graph.nodes[alias_node].get("description", "")
-                if alias_desc and alias_desc not in canonical_desc:
-                    nx_graph.nodes[canonical]["description"] = f"{canonical_desc}\n[Синоним: {alias_node}]: {alias_desc}".strip()
-
-            # Redirect edges
-            for neighbor in list(nx_graph.neighbors(alias_node)):
-                edge_data = nx_graph.get_edge_data(alias_node, neighbor)
-                if not nx_graph.has_edge(canonical, neighbor):
-                    nx_graph.add_edge(canonical, neighbor, **edge_data)
-                
-            # Remove the alias node
-            nx_graph.remove_node(alias_node)
-            modified = True
-
-    if modified:
-        logger.info("Saving updated NetworkX graph to disk...")
-        NetworkXStorage.write_nx_graph(
-            nx_graph, graph_storage._graphml_xml_file, graph_storage.workspace
-        )
-        logger.info(f"Merged NetworkX graph: {len(nx_graph.nodes)} nodes, {len(nx_graph.edges)} edges")
-    else:
-        logger.info("No NetworkX nodes needed merging.")
-
-async def merge_nodes_neo4j(graph_storage, synonym_dict: dict):
-    """Merge nodes in Neo4j storage using Cypher queries."""
-    driver = graph_storage.client
-    database = graph_storage.database
-    workspace = graph_storage.workspace
-
-    logger.info(f"Running Neo4j synonym merging on database '{database}', workspace '{workspace}'...")
-    
-    fallback_query = """
-    MATCH (alias:Entity {name: $alias, workspace: $workspace})
-    MERGE (canonical:Entity {name: $canonical, workspace: $workspace})
-    ON CREATE SET canonical.description = alias.description, canonical.entity_type = alias.entity_type
-    ON MATCH SET canonical.description = 
-        CASE 
-            WHEN alias.description IS NOT NULL AND NOT canonical.description CONTAINS alias.description
-            THEN canonical.description + "\\n[Синоним: " + $alias + "]: " + alias.description
-            ELSE canonical.description
-        END
-    WITH alias, canonical
-    // Redirection of standard relations
-    OPTIONAL MATCH (alias)-[r:uses_material]->(out)
-    FOREACH (x IN CASE WHEN r IS NOT NULL THEN [1] ELSE [] END |
-        MERGE (canonical)-[r2:uses_material]->(out)
-        SET r2 = r
-        DELETE r
-    )
-    WITH alias, canonical
-    OPTIONAL MATCH (in)-[r:uses_material]->(alias)
-    FOREACH (x IN CASE WHEN r IS NOT NULL THEN [1] ELSE [] END |
-        MERGE (in)-[r2:uses_material]->(canonical)
-        SET r2 = r
-        DELETE r
-    )
-    WITH alias, canonical
-    OPTIONAL MATCH (alias)-[r:operates_at_condition]->(out)
-    FOREACH (x IN CASE WHEN r IS NOT NULL THEN [1] ELSE [] END |
-        MERGE (canonical)-[r2:operates_at_condition]->(out)
-        SET r2 = r
-        DELETE r
-    )
-    WITH alias
-    DETACH DELETE alias
-    """
-
-    async def run_tx(tx, query, alias, canonical):
-        await tx.run(query, alias=alias, canonical=canonical, workspace=workspace)
-
-    async with driver.session(database=database) as session:
-        for alias, canonical in synonym_dict.items():
-            await session.execute_write(run_tx, fallback_query, alias, canonical)
-            logger.info(f"Neo4j: Merged '{alias}' -> '{canonical}'")
+from alloyrag.utils_graph import amerge_entities
 
 async def extract_all_nodes(graph_storage) -> list[dict]:
     """Helper to load all nodes and descriptions from graph storage."""
@@ -128,6 +25,21 @@ async def extract_all_nodes(graph_storage) -> list[dict]:
                 "type": attrs.get("entity_type", "Other"),
                 "description": attrs.get("description", "")
             })
+    elif hasattr(graph_storage, "client"):
+        # Neo4j - fetch all nodes
+        driver = graph_storage.client
+        database = graph_storage.database
+        workspace = graph_storage.workspace
+        
+        query = "MATCH (n:Entity {workspace: $workspace}) RETURN n.name as name, n.entity_type as type, n.description as description"
+        async with driver.session(database=database) as session:
+            result = await session.run(query, workspace=workspace)
+            async for record in result:
+                nodes.append({
+                    "name": record["name"],
+                    "type": record["type"],
+                    "description": record["description"] or ""
+                })
     return nodes
 
 async def run_semantic_blocking(rag_instance, nodes: list[dict], threshold: float = 0.72) -> list[list[dict]]:
@@ -204,8 +116,8 @@ async def verify_synonym_group_via_llm(rag_instance, group: list[dict]) -> dict:
         logger.error(f"Error verifying group { [n['name'] for n in group] }: {e}")
     return {}
 
-async def main():
-    load_dotenv()
+async def run_merging_pipeline():
+    """Main entry point to perform semantic blocking, LLM verification, and built-in entity merging."""
     rag = get_rag_instance()
     await rag.initialize_storages()
 
@@ -215,7 +127,6 @@ async def main():
     nodes = await extract_all_nodes(graph_storage)
     if not nodes:
         logger.info("Graph is empty. No entities to merge.")
-        await rag.finalize_storages()
         return
 
     # 2. Block/Group similar nodes semantically using embeddings
@@ -227,19 +138,31 @@ async def main():
         mappings = await verify_synonym_group_via_llm(rag, group)
         synonym_map.update(mappings)
 
-    # 4. Merge nodes in active storage backend
+    # 4. Merge nodes using the built-in amerge_entities helper (synchronizes Vector, Graph, and KV store)
     if synonym_map:
         logger.info(f"Resolved synonym map to merge: {synonym_map}")
-        if hasattr(graph_storage, "_graph"):
-            await merge_nodes_networkx(graph_storage, synonym_map)
-        elif hasattr(graph_storage, "client"):
-            await merge_nodes_neo4j(graph_storage, synonym_map)
-        else:
-            logger.warning(f"Unsupported graph storage class for merging: {type(graph_storage)}")
+        # Group aliases by canonical target to perform batch merges
+        canonical_to_aliases = {}
+        for alias, canonical in synonym_map.items():
+            canonical_to_aliases.setdefault(canonical, []).append(alias)
+            
+        for canonical, aliases in canonical_to_aliases.items():
+            try:
+                logger.info(f"Merging aliases {aliases} into canonical node '{canonical}'...")
+                await amerge_entities(
+                    chunk_entity_relation_graph=rag.chunk_entity_relation_graph,
+                    entities_vdb=rag.entities_vdb,
+                    relationships_vdb=rag.relationships_vdb,
+                    source_entities=aliases,
+                    target_entity=canonical,
+                    entity_chunks_storage=rag.entity_chunks,
+                    relation_chunks_storage=rag.relation_chunks
+                )
+            except Exception as e:
+                logger.error(f"Failed to merge aliases into '{canonical}': {e}")
     else:
         logger.info("No synonyms detected by LLM. Nothing to merge.")
 
-    await rag.finalize_storages()
-
 if __name__ == "__main__":
-    asyncio.run(main())
+    load_dotenv()
+    asyncio.run(run_merging_pipeline())

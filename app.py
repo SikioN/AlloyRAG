@@ -68,6 +68,16 @@ async def run_indexing_pipeline():
         logger.info("Background indexing pipeline started...")
         # Call the async version directly on the main event loop
         await ascan_and_ingest_inputs()
+        
+        # Run synonym resolution automatically after indexing completes
+        try:
+            logger.info("Starting automated synonym resolution & entity merging...")
+            from scripts.merge_synonyms import run_merging_pipeline
+            await run_merging_pipeline()
+            logger.info("Automated synonym resolution completed successfully.")
+        except Exception as e:
+            logger.error(f"Failed to run automated synonym resolution: {e}")
+            
         logger.info("Background indexing pipeline completed successfully.")
     except Exception as e:
         logger.error(f"Error in background indexing pipeline: {e}")
