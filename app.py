@@ -2,7 +2,7 @@ import os
 import shutil
 import asyncio
 
-from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,6 +20,8 @@ from alloyrag.utils import logger
 from alloyrag.api.routers.document_routes import create_document_routes, DocumentManager
 from alloyrag.api.routers.query_routes import create_query_routes
 from alloyrag.api.routers.graph_routes import create_graph_routes
+from fastapi.security import OAuth2PasswordRequestForm
+from alloyrag.api.auth import auth_handler
 
 load_dotenv()
 
@@ -346,17 +348,64 @@ async def get_scan_progress():
 
 
 @app.get("/documents/pipeline_status")
-async def get_pipeline_status():
+async def get_pipeline_status_custom():
     return {"busy": is_indexing_busy, "active": is_indexing_busy, "pending_enqueues": 0}
 
 
 @app.get("/auth-status")
 async def get_auth_status():
+    if not auth_handler.accounts:
+        guest_token = auth_handler.create_token(
+            username="guest", role="guest", metadata={"auth_mode": "disabled"}
+        )
+        return {
+            "auth_configured": False,
+            "access_token": guest_token,
+            "token_type": "bearer",
+            "auth_mode": "disabled",
+            "message": "Authentication is disabled. Using guest access.",
+            "core_version": "1.5.5",
+            "api_version": "1.5.5",
+            "webui_title": "AlloyRAG",
+            "webui_description": "Научный клубок RAG-система",
+        }
     return {
-        "auth_configured": False,
-        "auth_mode": "disabled",
-        "access_token": "guest-token",
+        "auth_configured": True,
+        "auth_mode": "enabled",
+        "core_version": "1.5.5",
+        "api_version": "1.5.5",
+        "webui_title": "AlloyRAG",
+        "webui_description": "Научный клубок RAG-система",
+    }
+
+
+@app.post("/login")
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    if not auth_handler.accounts:
+        guest_token = auth_handler.create_token(
+            username="guest", role="guest", metadata={"auth_mode": "disabled"}
+        )
+        return {
+            "access_token": guest_token,
+            "token_type": "bearer",
+            "auth_mode": "disabled",
+            "message": "Authentication is disabled. Using guest access.",
+            "core_version": "1.5.5",
+            "api_version": "1.5.5",
+            "webui_title": "AlloyRAG",
+            "webui_description": "Научный клубок RAG-система",
+        }
+    username = form_data.username
+    if not auth_handler.verify_password(username, form_data.password):
+        raise HTTPException(status_code=401, detail="Incorrect credentials")
+
+    user_token = auth_handler.create_token(
+        username=username, role="user", metadata={"auth_mode": "enabled"}
+    )
+    return {
+        "access_token": user_token,
         "token_type": "bearer",
+        "auth_mode": "enabled",
         "core_version": "1.5.5",
         "api_version": "1.5.5",
         "webui_title": "AlloyRAG",
