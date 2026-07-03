@@ -74,9 +74,7 @@ services:
       - vllm_embed_cache:/root/.cache/huggingface
     ipc: host
     healthcheck:
-      test:
-        - CMD-SHELL
-        - 'PORT_HEX="$(printf ''%04X'' ${VLLM_EMBED_PORT:-8001})"; cat /proc/net/tcp /proc/net/tcp6 2>/dev/null | grep -q ":$${PORT_HEX} "'
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
       interval: 5s
       timeout: 3s
       retries: 120
@@ -108,9 +106,7 @@ services:
       - vllm_rerank_cache:/root/.cache/huggingface
     ipc: host
     healthcheck:
-      test:
-        - CMD-SHELL
-        - 'PORT_HEX="$(printf ''%04X'' ${VLLM_RERANK_PORT:-8000})"; cat /proc/net/tcp /proc/net/tcp6 2>/dev/null | grep -q ":$${PORT_HEX} "'
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 5s
       timeout: 3s
       retries: 120
