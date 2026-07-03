@@ -123,22 +123,36 @@ def get_rag_instance() -> AlloyRAG:
     os.makedirs(working_dir, exist_ok=True)
     os.makedirs(input_dir, exist_ok=True)
 
+    llm_binding = os.getenv("LLM_BINDING", "ollama").lower()
     llm_model = os.getenv("LLM_MODEL", "llama3.2:latest")
     llm_host = os.getenv("LLM_BINDING_HOST", "http://localhost:11434")
 
     # 1. Initialize LLM Complete Function
-    llm_model_func = ollama_model_complete
-    # timeout=300: llama3.2 on Mac can be slow generating long responses (17 entities + 25 relations context).
-    # num_ctx=8192: Ollama's default context window is only 2048 tokens — not enough for full KG context.
-    llm_model_kwargs = {
-        "host": llm_host,
-        "timeout": 300,
-        "options": {
-            "num_ctx": 8192,  # Expand context window (default in Ollama = 2048, too small)
-            "num_predict": 2048,  # Max tokens in response
-            "temperature": 0.1,  # Low temperature for factual/consistent answers
-        },
-    }
+    if llm_binding == "openai":
+        from alloyrag.llm.openai import openai_complete
+        llm_model_func = openai_complete
+        # Set up kwargs for OpenAI or OpenAI-compatible endpoint
+        llm_model_kwargs = {
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "base_url": os.getenv("OPENAI_BASE_URL") or os.getenv("LLM_BINDING_HOST"),
+            "timeout": 300,
+        }
+        # If no specific model is set in env, default to gpt-4o-mini
+        if os.getenv("LLM_MODEL") is None:
+            llm_model = "gpt-4o-mini"
+    else:
+        llm_model_func = ollama_model_complete
+        # timeout=300: llama3.2 on Mac can be slow generating long responses (17 entities + 25 relations context).
+        # num_ctx=8192: Ollama's default context window is only 2048 tokens — not enough for full KG context.
+        llm_model_kwargs = {
+            "host": llm_host,
+            "timeout": 300,
+            "options": {
+                "num_ctx": 8192,  # Expand context window (default in Ollama = 2048, too small)
+                "num_predict": 2048,  # Max tokens in response
+                "temperature": 0.1,  # Low temperature for factual/consistent answers
+            },
+        }
 
     # 2. Initialize Embedding Function
     embedding_binding = os.getenv("EMBEDDING_BINDING", "local_huggingface")
