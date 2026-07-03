@@ -231,7 +231,7 @@ services:
     restart: unless-stopped
 
   docling-serve:
-    image: quay.io/docling-project/docling-serve-cu124:v1.20.0
+    image: ghcr.io/docling-project/docling-serve-cu124:latest
     container_name: docling-serve
     environment:
       - DOCLING_SERVE_ENABLE_UI=true
