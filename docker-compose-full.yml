@@ -29,7 +29,9 @@ services:
       HOST: "0.0.0.0"
       PORT: "9621"
       EMBEDDING_BINDING_HOST: "http://vllm-embed:8001/v1"
+      EMBEDDING_BINDING_API_KEY: "${VLLM_EMBED_API_KEY:-alloyrag}"
       RERANK_BINDING_HOST: "http://vllm-rerank:8000/rerank"
+      RERANK_BINDING_API_KEY: "${VLLM_RERANK_API_KEY:-alloyrag}"
       POSTGRES_HOST: "postgres"
       POSTGRES_PORT: "5432"
       NEO4J_URI: "neo4j://neo4j:7687"
@@ -61,7 +63,8 @@ services:
       --model ${VLLM_EMBED_MODEL:-BAAI/bge-m3}
       --port ${VLLM_EMBED_PORT:-8001}
       --dtype float16
-      --api-key ${VLLM_EMBED_API_KEY}
+      --gpu-memory-utilization 0.2
+      --api-key ${VLLM_EMBED_API_KEY:-alloyrag}
       ${VLLM_EMBED_EXTRA_ARGS:-}
     environment:
       NVIDIA_VISIBLE_DEVICES: ${NVIDIA_VISIBLE_DEVICES:-all}
@@ -93,7 +96,8 @@ services:
       --model ${VLLM_RERANK_MODEL:-BAAI/bge-reranker-v2-m3}
       --port ${VLLM_RERANK_PORT:-8000}
       --dtype float16
-      --api-key ${VLLM_RERANK_API_KEY}
+      --gpu-memory-utilization 0.2
+      --api-key ${VLLM_RERANK_API_KEY:-alloyrag}
       ${VLLM_RERANK_EXTRA_ARGS:-}
     environment:
       NVIDIA_VISIBLE_DEVICES: ${NVIDIA_VISIBLE_DEVICES:-all}
