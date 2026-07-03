@@ -1034,11 +1034,22 @@ async def openai_embed(
         is_yandex = base_url and ("yandex" in base_url or "yandex" in model)
 
         if is_yandex:
+            # Yandex tokenizer counts ~30% more tokens than tiktoken for Russian text.
+            # Apply conservative character-based truncation as a hard safety net:
+            # 2048 token limit / 1.3 overhead factor * ~3 chars/token ≈ 4700 chars
+            _YANDEX_CHAR_LIMIT = 4500
+
             # Execute embedding requests in parallel for each text individually
             async def embed_single(text):
+                # Hard character truncation to stay within Yandex token limit
+                if len(text) > _YANDEX_CHAR_LIMIT:
+                    logger.debug(
+                        f"Yandex embed: truncating text from {len(text)} to {_YANDEX_CHAR_LIMIT} chars"
+                    )
+                    text = text[:_YANDEX_CHAR_LIMIT]
                 single_params = {**api_params, "input": [text]}
                 return await openai_async_client.embeddings.create(**single_params)
-            
+
             tasks = [embed_single(text) for text in texts]
             responses = await asyncio.gather(*tasks)
             
