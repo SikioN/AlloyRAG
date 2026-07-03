@@ -236,6 +236,7 @@ services:
     environment:
       - DOCLING_SERVE_ENABLE_UI=true
       - DOCLING_DEVICE=cuda
+      - DOCLING_SERVE_MAX_SYNC_WAIT=1200
     ports:
       - "5001:5001"
     deploy:
