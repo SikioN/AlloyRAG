@@ -128,9 +128,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
-      test:
-        - CMD-SHELL
-        - 'PORT_HEX="$(printf ''%04X'' 5432)"; cat /proc/net/tcp /proc/net/tcp6 2>/dev/null | grep -q ":$${PORT_HEX} "'
+      test: ["CMD-SHELL", "pg_isready -U rag"]
       interval: 5s
       timeout: 3s
       retries: 120
@@ -149,9 +147,7 @@ services:
     volumes:
       - neo4j_data:/data
     healthcheck:
-      test:
-        - CMD-SHELL
-        - 'PORT_HEX="$(printf ''%04X'' 7687)"; cat /proc/net/tcp /proc/net/tcp6 2>/dev/null | grep -q ":$${PORT_HEX} "'
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:7474/ || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 120
@@ -183,9 +179,7 @@ services:
             - driver: nvidia
               capabilities: ["gpu"]
     healthcheck:
-      test:
-        - CMD-SHELL
-        - 'PORT_HEX="$(printf ''%04X'' 19530)"; cat /proc/net/tcp /proc/net/tcp6 2>/dev/null | grep -q ":$${PORT_HEX} "'
+      test: ["CMD-SHELL", "curl -f http://localhost:9091/healthz || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 120
