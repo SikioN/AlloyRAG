@@ -1,9 +1,6 @@
-# syntax=docker/dockerfile:1
-
 # Frontend build stage
-# Build frontend assets on the native build platform to avoid
-# cross-architecture emulation issues during multi-platform builds.
-FROM --platform=$BUILDPLATFORM oven/bun:1 AS frontend-builder
+# Build frontend assets
+FROM oven/bun:1 AS frontend-builder
 
 WORKDIR /app
 
@@ -11,8 +8,7 @@ WORKDIR /app
 COPY alloyrag_webui/ ./alloyrag_webui/
 
 # Build frontend assets for inclusion in the API package
-RUN --mount=type=cache,target=/root/.bun/install/cache \
-    cd alloyrag_webui \
+RUN cd alloyrag_webui \
     && bun install --frozen-lockfile \
     && bun run build
 
@@ -45,7 +41,7 @@ COPY setup.py .
 COPY uv.lock .
 
 # Install base, API, and offline extras without the project to improve caching
-RUN --mount=type=cache,target=/root/.local/share/uv \
+RUN \
     uv sync --frozen --no-dev --extra api --extra offline --no-install-project --no-editable
 
 # Copy project sources after dependency layer
@@ -57,7 +53,7 @@ COPY app.py .
 COPY --from=frontend-builder /app/alloyrag/api/webui ./alloyrag/api/webui
 
 # Sync project in non-editable mode and ensure pip is available for runtime installs
-RUN --mount=type=cache,target=/root/.local/share/uv \
+RUN \
     uv sync --frozen --no-dev --extra api --extra offline --no-editable \
     && /app/.venv/bin/python -m ensurepip --upgrade
 
@@ -94,7 +90,7 @@ ENV PATH=/app/.venv/bin:/root/.local/bin:$PATH
 
 # Install dependencies with uv sync (uses locked versions from uv.lock)
 # And ensure pip is available for runtime installs
-RUN --mount=type=cache,target=/root/.local/share/uv \
+RUN \
     uv sync --frozen --no-dev --extra api --extra offline --no-editable \
     && /app/.venv/bin/python -m ensurepip --upgrade
 
