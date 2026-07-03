@@ -189,6 +189,19 @@ def get_rag_instance() -> AlloyRAG:
             model_name=embedding_model,
             supports_asymmetric=True,
         )
+    elif embedding_binding == "openai":
+        from alloyrag.llm.openai import openai_embed
+        embedding_func = EmbeddingFunc(
+            embedding_dim=embedding_dim,
+            func=functools.partial(
+                openai_embed.func,
+                model=embedding_model,
+                base_url=os.getenv("EMBEDDING_BINDING_HOST") or os.getenv("LLM_BINDING_HOST"),
+                api_key=os.getenv("EMBEDDING_BINDING_API_KEY") or os.getenv("LLM_BINDING_API_KEY"),
+            ),
+            model_name=embedding_model,
+            supports_asymmetric=True,
+        )
     else:
         # Fallback to Ollama embedding
         from alloyrag.llm.ollama import ollama_embed
