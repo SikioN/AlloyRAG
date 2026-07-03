@@ -251,7 +251,7 @@ def create_openai_async_client(
 
 # TODO LengthFinishReasonError should not persist into LLM cache
 @retry(
-    stop=stop_after_attempt(3),
+    stop=stop_after_attempt(15),
     wait=wait_exponential(multiplier=1, min=4, max=10),
     retry=(
         retry_if_exception_type(RateLimitError)
@@ -912,7 +912,7 @@ async def nvidia_openai_complete(
     supports_asymmetric=True,
 )
 @retry(
-    stop=stop_after_attempt(3),
+    stop=stop_after_attempt(10),
     wait=wait_exponential(multiplier=1, min=4, max=60),
     retry=(
         retry_if_exception_type(RateLimitError)
