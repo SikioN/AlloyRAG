@@ -391,7 +391,9 @@ async def health():
 # Register standard routers from alloyrag
 rag_instance = get_rag_instance()
 doc_manager_instance = DocumentManager("./inputs")
-api_key_val = os.getenv("ALLOYRAG_API_KEY") or os.getenv("ALLOYRAG_API_KEY")
+api_key_val = os.getenv("ALLOYRAG_API_KEY")
+
+logger.info(f"DEBUG: ALLOYRAG_API_KEY value is: {repr(api_key_val)}")
 
 app.include_router(
     create_document_routes(rag_instance, doc_manager_instance, api_key_val)
