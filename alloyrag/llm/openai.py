@@ -72,6 +72,26 @@ except ImportError:
 load_dotenv(dotenv_path=".env", override=False)
 
 
+_yandex_embeddings_sem = None
+_yandex_completions_sem = None
+
+
+def _get_yandex_embeddings_sem():
+    global _yandex_embeddings_sem
+    if _yandex_embeddings_sem is None:
+        # Limit to 5 concurrent tokenize/embedding API calls to prevent Yandex 429
+        _yandex_embeddings_sem = asyncio.Semaphore(5)
+    return _yandex_embeddings_sem
+
+
+def _get_yandex_completions_sem():
+    global _yandex_completions_sem
+    if _yandex_completions_sem is None:
+        # Limit to 7 concurrent generation sessions to stay under Yandex 10 concurrent requests limit
+        _yandex_completions_sem = asyncio.Semaphore(7)
+    return _yandex_completions_sem
+
+
 class InvalidResponseError(Exception):
     """Custom exception class for triggering retry mechanism"""
 
@@ -435,14 +455,16 @@ async def openai_complete_if_cache(
     api_model = azure_deployment if use_azure and azure_deployment else model
 
     try:
-        # Single dispatch: create() covers the dict-based response_format
-        # payloads used by this project. Typed/Pydantic helpers are rejected
-        # above. Length-truncation is detected via finish_reason below and the
-        # raw content is returned unchanged so upstream tolerant JSON parsing
-        # can still salvage it.
-        response = await openai_async_client.chat.completions.create(
-            model=api_model, messages=messages, **kwargs
-        )
+        is_yandex = base_url and ("yandex" in base_url or "yandex" in model)
+        if is_yandex:
+            async with _get_yandex_completions_sem():
+                response = await openai_async_client.chat.completions.create(
+                    model=api_model, messages=messages, **kwargs
+                )
+        else:
+            response = await openai_async_client.chat.completions.create(
+                model=api_model, messages=messages, **kwargs
+            )
     except APITimeoutError as e:
         logger.error(f"OpenAI API Timeout Error: {e}")
         try:
@@ -1049,8 +1071,9 @@ async def openai_embed(
             async def _count_yandex_tokens(text: str, client: httpx.AsyncClient) -> int:
                 """Count tokens using the free Yandex Tokenize API (billed at zero cost)."""
                 payload = {"modelUri": model, "text": text}
-                resp = await client.post(_tokenize_url, json=payload, headers=_tok_headers)
-                resp.raise_for_status()
+                async with _get_yandex_embeddings_sem():
+                    resp = await client.post(_tokenize_url, json=payload, headers=_tok_headers)
+                    resp.raise_for_status()
                 return len(resp.json().get("tokens", []))
 
             async def _truncate_to_yandex_limit(text: str, client: httpx.AsyncClient) -> str:
@@ -1094,7 +1117,8 @@ async def openai_embed(
                 async def embed_single(text):
                     text = await _truncate_to_yandex_limit(text, tok_client)
                     single_params = {**api_params, "input": [text]}
-                    return await openai_async_client.embeddings.create(**single_params)
+                    async with _get_yandex_embeddings_sem():
+                        return await openai_async_client.embeddings.create(**single_params)
 
                 tasks = [embed_single(text) for text in texts]
                 responses = await asyncio.gather(*tasks)
