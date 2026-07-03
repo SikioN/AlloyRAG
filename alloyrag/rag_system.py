@@ -133,8 +133,8 @@ def get_rag_instance() -> AlloyRAG:
         llm_model_func = openai_complete
         # Set up kwargs for OpenAI or OpenAI-compatible endpoint
         llm_model_kwargs = {
-            "api_key": os.getenv("OPENAI_API_KEY"),
-            "base_url": os.getenv("OPENAI_BASE_URL") or os.getenv("LLM_BINDING_HOST"),
+            "api_key": os.getenv("LLM_BINDING_API_KEY") or os.getenv("OPENAI_API_KEY"),
+            "base_url": os.getenv("LLM_BINDING_HOST") or os.getenv("OPENAI_BASE_URL"),
             "timeout": 300,
         }
         # If no specific model is set in env, default to gpt-4o-mini
