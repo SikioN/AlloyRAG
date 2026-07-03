@@ -112,15 +112,25 @@ class LocalSentenceTransformerEmbedder:
 
         # sentence-transformers encode is synchronous, run in executor to avoid blocking the event loop
         loop = asyncio.get_event_loop()
-        # Add prefixes if model expects them (like e5 models which expect "query: " or "passage: ")
-        processed_texts = []
+        
+        # Read user-defined prefixes from environment variables
+        query_prefix = os.getenv("EMBEDDING_QUERY_PREFIX")
+        document_prefix = os.getenv("EMBEDDING_DOCUMENT_PREFIX")
+        
+        # Apply defaults for E5 models if not explicitly specified
         is_e5 = "e5" in self.model_name.lower()
+        if is_e5:
+            if query_prefix is None:
+                query_prefix = "query: "
+            if document_prefix is None:
+                document_prefix = "passage: "
+
+        processed_texts = []
         for text in texts:
-            if is_e5:
-                if context == "query":
-                    processed_texts.append(f"query: {text}")
-                else:
-                    processed_texts.append(f"passage: {text}")
+            if context == "query" and query_prefix:
+                processed_texts.append(query_prefix + text)
+            elif context == "document" and document_prefix:
+                processed_texts.append(document_prefix + text)
             else:
                 processed_texts.append(text)
 
