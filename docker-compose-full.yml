@@ -231,10 +231,20 @@ services:
     restart: unless-stopped
 
   docling-serve:
-    image: ghcr.io/docling-project/docling-serve:latest
+    image: quay.io/docling-project/docling-serve-cu124:v1.20.0
     container_name: docling-serve
+    environment:
+      - DOCLING_SERVE_ENABLE_UI=true
+      - DOCLING_DEVICE=cuda
     ports:
       - "5001:5001"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     restart: unless-stopped
 
 volumes:
