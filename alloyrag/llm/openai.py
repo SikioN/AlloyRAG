@@ -1,5 +1,6 @@
 from ..utils import verbose_debug, VERBOSE_DEBUG
 import os
+import asyncio
 import logging
 import warnings
 
@@ -1028,8 +1029,43 @@ async def openai_embed(
         if embedding_dim is not None and EMBEDDING_SEND_DIM:
             api_params["dimensions"] = embedding_dim
 
-        # Make API call
-        response = await openai_async_client.embeddings.create(**api_params)
+        # Yandex Cloud only supports embedding exactly one string per request.
+        # Check if the provider is Yandex Cloud based on host or model name.
+        is_yandex = base_url and ("yandex" in base_url or "yandex" in model)
+
+        if is_yandex:
+            # Execute embedding requests in parallel for each text individually
+            async def embed_single(text):
+                single_params = {**api_params, "input": [text]}
+                return await openai_async_client.embeddings.create(**single_params)
+            
+            tasks = [embed_single(text) for text in texts]
+            responses = await asyncio.gather(*tasks)
+            
+            # Combine response data
+            combined_data = []
+            total_prompt_tokens = 0
+            total_tokens = 0
+            
+            for resp in responses:
+                combined_data.extend(resp.data)
+                if hasattr(resp, "usage") and resp.usage:
+                    total_prompt_tokens += getattr(resp.usage, "prompt_tokens", 0)
+                    total_tokens += getattr(resp.usage, "total_tokens", 0)
+            
+            # Mock a single response object for downstream parsing
+            class MockResponse:
+                def __init__(self, data, prompt_tokens, total_tokens):
+                    self.data = data
+                    self.usage = type('Usage', (), {
+                        'prompt_tokens': prompt_tokens,
+                        'total_tokens': total_tokens
+                    })()
+            
+            response = MockResponse(combined_data, total_prompt_tokens, total_tokens)
+        else:
+            # Standard batch call
+            response = await openai_async_client.embeddings.create(**api_params)
 
         if token_tracker and hasattr(response, "usage"):
             token_counts = {
