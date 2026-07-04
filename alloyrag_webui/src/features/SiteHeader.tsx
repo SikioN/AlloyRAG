@@ -18,12 +18,17 @@ interface NavigationTabProps {
 }
 
 function NavigationTab({ value, currentTab, children }: NavigationTabProps) {
+  const isActive =
+    value === 'knowledge-graph-3d'
+      ? currentTab === 'knowledge-graph' || currentTab === 'knowledge-graph-3d'
+      : currentTab === value
+
   return (
     <TabsTrigger
       value={value}
       className={cn(
         'cursor-pointer px-2 py-1 transition-all',
-        currentTab === value ? '!bg-emerald-400 !text-zinc-50' : 'hover:bg-background/60'
+        isActive ? '!bg-indigo-400 !text-zinc-50' : 'hover:bg-background/60'
       )}
     >
       {children}
@@ -38,18 +43,21 @@ function TabsNavigation() {
   return (
     <div className="flex h-8 self-center">
       <TabsList className="h-full gap-2">
-        <NavigationTab value="documents" currentTab={currentTab}>
-          {t('header.documents')}
-        </NavigationTab>
-        <NavigationTab value="knowledge-graph" currentTab={currentTab}>
-          {t('header.knowledgeGraph')}
-        </NavigationTab>
         <NavigationTab value="retrieval" currentTab={currentTab}>
           {t('header.retrieval')}
         </NavigationTab>
-        <NavigationTab value="api" currentTab={currentTab}>
-          {t('header.api')}
+        {/* <NavigationTab value="knowledge-graph" currentTab={currentTab}>
+          {t('header.knowledgeGraph')}
+        </NavigationTab> */}
+        <NavigationTab value="knowledge-graph-3d" currentTab={currentTab}>
+          {t('header.knowledgeGraph')} 
         </NavigationTab>
+        <NavigationTab value="documents" currentTab={currentTab}>
+          {t('header.documents')}
+        </NavigationTab>
+        {/* <NavigationTab value="api" currentTab={currentTab}>
+          {t('header.api')}
+        </NavigationTab> */}
       </TabsList>
     </div>
   )
@@ -74,11 +82,11 @@ export default function SiteHeader() {
   }
 
   return (
-    <header className="border-border/40 bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 flex h-10 w-full border-b px-4 backdrop-blur">
-      <div className="min-w-[200px] w-auto flex items-center">
-        <a href={webuiPrefix} className="flex items-center gap-2">
-          <ZapIcon className="size-4 text-emerald-400" aria-hidden="true" />
-          <span className="font-bold md:inline-block">{SiteInfo.name}</span>
+    <header className="border-border/40 bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 flex h-12 w-full border-b px-4 backdrop-blur">
+      <div className="min-w-[20px] w-auto flex items-center">
+        <a href={"https://disk.yandex.ru/d/0ShW3r0YsO-I9Q"} className="flex items-center gap-2" target="_blank">
+          <img src="logo.svg" className='h-10'/>
+          <h1 className="font-bold text-xl md:inline-block">{SiteInfo.name}</h1>
         </a>
         {webuiTitle && (
           <div className="flex items-center">
@@ -101,10 +109,10 @@ export default function SiteHeader() {
         )}
       </div>
 
-      <div className="flex h-10 flex-1 items-center justify-center">
+      <div className="flex h-12 flex-1 items-center justify-center">
         <TabsNavigation />
         {isGuestMode && (
-          <div className="ml-2 self-center px-2 py-1 text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 rounded-md">
+          <div className="ml-5 self-center px-2 py-1 text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 rounded-md">
             {t('login.guestMode', 'Guest Mode')}
           </div>
         )}
@@ -112,20 +120,6 @@ export default function SiteHeader() {
 
       <nav className="w-[200px] flex items-center justify-end">
         <div className="flex items-center gap-2">
-          {versionDisplay && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 mr-1 cursor-default">
-                    v{versionDisplay}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  {versionTooltip}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
           <Button variant="ghost" size="icon" side="bottom" tooltip={t('header.projectRepository')}>
             <a href={SiteInfo.github} target="_blank" rel="noopener noreferrer">
               <GithubIcon className="size-4" />

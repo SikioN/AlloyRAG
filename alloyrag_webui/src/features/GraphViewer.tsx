@@ -12,6 +12,8 @@ import {
 } from 'sigma/rendering'
 import { NodeBorderProgram } from '@sigma/node-border'
 import { EdgeCurvedArrowProgram, createEdgeCurveProgram } from '@sigma/edge-curve'
+import { Cuboid } from 'lucide-react'
+import Button from '@/components/ui/Button'
 
 import FocusOnNode from '@/components/graph/FocusOnNode'
 import LayoutsControl from '@/components/graph/LayoutsControl'
@@ -30,10 +32,11 @@ import LegendButton from '@/components/graph/LegendButton'
 import { useSettingsStore } from '@/stores/settings'
 import { useGraphStore } from '@/stores/graph'
 import useIsDarkMode from '@/hooks/useIsDarkMode'
-import { labelColorDarkTheme, labelColorLightTheme, edgeColorDarkTheme, EDGE_PERF_LIMIT } from '@/lib/constants'
+import { labelColorDarkTheme, labelColorLightTheme, edgeColorDarkTheme, EDGE_PERF_LIMIT, controlButtonVariant } from '@/lib/constants'
 
 import '@react-sigma/core/lib/style.css'
 import '@react-sigma/graph-search/lib/style.css'
+import { useTranslation } from 'react-i18next'
 
 // Function to create sigma settings based on theme.
 // `enableEdgeEvents` MUST be passed in (not toggled at runtime): sigma allocates
@@ -231,6 +234,7 @@ const GraphViewer = () => {
   // but testing showed it wasn't executing or having any effect, while the backup mechanism
   // in GraphControl was sufficient. This code was removed to simplify implementation
 
+  const { t } = useTranslation();
   const onSearchFocus = useCallback((value: GraphSearchOption | null) => {
     if (value === null) useGraphStore.getState().setFocusedNode(null)
     else if (value.type === 'nodes') useGraphStore.getState().setFocusedNode(value.id)
@@ -279,6 +283,14 @@ const GraphViewer = () => {
           <LayoutsControl />
           <ZoomControl />
           <FullScreenControl />
+          <Button
+            onClick={() => useSettingsStore.getState().setCurrentTab('knowledge-graph-3d')}
+            variant={controlButtonVariant}
+            size="icon"
+            tooltip={t("graphPanel.dimensionsSwitch3D")}
+          >
+            <Cuboid className="h-4 w-4" />
+          </Button>
           <LegendButton />
           <Settings />
           {/* <ThemeToggle /> */}

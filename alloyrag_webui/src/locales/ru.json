@@ -9,6 +9,7 @@
   "header": {
     "documents": "Документы",
     "knowledgeGraph": "Граф знаний",
+    "knowledgeGraph3D": "3D Граф знаний",
     "retrieval": "Поиск",
     "api": "API",
     "projectRepository": "Репозиторий проекта",
@@ -208,6 +209,8 @@
       "description": "Просмотр текущего статуса системы и информации о подключении"
     },
     "legend": "Легенда",
+    "dimensionsSwitch2D": "Перейти в 2D просмотр",
+    "dimensionsSwitch3D": "Перейти в 3D просмотр",
     "nodeTypes": {
       "person": "Персона",
       "category": "Категория",
@@ -243,7 +246,7 @@
     "sideBar": {
       "settings": {
         "settings": "Настройки",
-        "healthCheck": "Проверка здоровья",
+        "healthCheck": "Проверка статуса",
         "showPropertyPanel": "Показать панель свойств",
         "showSearchBar": "Показать панель поиска",
         "showNodeLabel": "Показать метки узлов",

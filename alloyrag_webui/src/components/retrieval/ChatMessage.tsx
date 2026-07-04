@@ -145,7 +145,17 @@ export const ChatMessage = ({
     h4: ({ children }: { children?: ReactNode }) => <h4 className="text-base font-semibold mt-3 mb-2">{children}</h4>,
     ul: ({ children }: { children?: ReactNode }) => <ul className="list-disc pl-5 my-2">{children}</ul>,
     ol: ({ children }: { children?: ReactNode }) => <ol className="list-decimal pl-5 my-2">{children}</ol>,
-    li: ({ children }: { children?: ReactNode }) => <li className="my-1">{children}</li>
+    li: ({ children }: { children?: ReactNode }) => <li className="my-1">{children}</li>,
+    table: ({ children }: { children?: ReactNode }) => (
+      <div className="overflow-x-auto my-4 border border-border rounded-lg">
+        <table className="min-w-full divide-y divide-border text-sm">{children}</table>
+      </div>
+    ),
+    thead: ({ children }: { children?: ReactNode }) => <thead className='bg-muted'>{children}</thead>,
+    tbody: ({ children }: { children?: ReactNode }) => <tbody className="divide-y divide-border">{children}</tbody>,
+    tr: ({ children }: { children?: ReactNode }) => <tr>{children}</tr>,
+    th: ({ children }: { children?: ReactNode }) => <th className="px-4 py-2.5 text-left font-medium whitespace-nowrap">{children}</th>,
+    td: ({ children }: { children?: ReactNode }) => <td className="px-4 py-3 whitespace-nowrap">{children}</td>,
   }), [message.mermaidRendered, message.role]);
 
   const thinkingMarkdownComponents = useMemo(() => ({
@@ -156,11 +166,11 @@ export const ChatMessage = ({
     <div
       className={`${
         message.role === 'user'
-          ? 'max-w-[80%] bg-primary text-primary-foreground'
+          ? 'max-w-[80%] bg-indigo-500 text-primary-foreground'
           : message.isError
             ? 'w-[95%] bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400'
-            : 'w-[95%] bg-muted'
-      } rounded-lg px-4 py-2`}
+            : 'w-[100%] bg-transparent'
+      } rounded-3xl px-4 py-1`}
     >
       {/* Thinking process display - only for assistant messages */}
       {/* Always render to prevent layout shift when switching tabs */}
@@ -232,7 +242,7 @@ export const ChatMessage = ({
       {finalDisplayContent && (
         <div className="relative">
           <div className={`prose dark:prose-invert max-w-none text-sm break-words prose-headings:mt-4 prose-headings:mb-2 prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 [&_.katex]:text-current [&_.katex-display]:my-4 [&_.katex-display]:max-w-full [&_.katex-display_>.base]:overflow-x-auto [&_sup]:text-[0.75em] [&_sup]:align-[0.1em] [&_sup]:leading-[0] [&_sub]:text-[0.75em] [&_sub]:align-[-0.2em] [&_sub]:leading-[0] [&_mark]:bg-yellow-200 [&_mark]:dark:bg-yellow-800 [&_u]:underline [&_del]:line-through [&_ins]:underline [&_ins]:decoration-green-500 [&_.footnotes]:mt-8 [&_.footnotes]:pt-4 [&_.footnotes]:border-t [&_.footnotes_ol]:text-sm [&_.footnotes_li]:my-1 ${
-            message.role === 'user' ? 'text-primary-foreground' : 'text-foreground'
+            message.role === 'user' ? 'text-white' : 'text-foreground'
           } ${
             message.role === 'user'
               ? '[&_.footnotes]:border-primary-foreground/30 [&_a[href^="#fn"]]:text-primary-foreground [&_a[href^="#fn"]]:no-underline [&_a[href^="#fn"]]:hover:underline [&_a[href^="#fnref"]]:text-primary-foreground [&_a[href^="#fnref"]]:no-underline [&_a[href^="#fnref"]]:hover:underline'

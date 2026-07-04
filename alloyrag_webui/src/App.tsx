@@ -6,6 +6,7 @@ import StatusIndicator from '@/components/status/StatusIndicator'
 import { SiteInfo, webuiPrefix } from '@/lib/constants'
 import { useBackendState, useAuthStore } from '@/stores/state'
 import { useSettingsStore } from '@/stores/settings'
+import { useGraphStore } from '@/stores/graph' // <-- Добавил эту строку
 import { getAuthStatus } from '@/api/alloyrag'
 import SiteHeader from '@/features/SiteHeader'
 import { InvalidApiKeyError, RequireApiKeError } from '@/api/alloyrag'
@@ -15,6 +16,7 @@ import GraphViewer from '@/features/GraphViewer'
 import DocumentManager from '@/features/DocumentManager'
 import RetrievalView from '@/features/RetrievalView'
 import ApiSite from '@/features/ApiSite'
+import Graph3DViewer from '@/features/Graph3DViewer' // <-- Добавил эту строку
 
 import { Tabs, TabsContent } from '@/components/ui/Tabs'
 
@@ -22,6 +24,7 @@ function App() {
   const message = useBackendState.use.message()
   const enableHealthCheck = useSettingsStore.use.enableHealthCheck()
   const currentTab = useSettingsStore.use.currentTab()
+  const sigmaGraph = useGraphStore.use.sigmaGraph() // <-- Добавил эту строку
   const [apiKeyAlertOpen, setApiKeyAlertOpen] = useState(false)
   const [initializing, setInitializing] = useState(true) // Add initializing state
   const versionCheckRef = useRef(false); // Prevent duplicate calls in Vite dev mode
@@ -173,8 +176,8 @@ function App() {
             {/* Simplified header during initialization - matches SiteHeader structure */}
             <header className="border-border/40 bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 flex h-10 w-full border-b px-4 backdrop-blur">
               <div className="min-w-[200px] w-auto flex items-center">
-                <a href={webuiPrefix} className="flex items-center gap-2">
-                  <ZapIcon className="size-4 text-emerald-400" aria-hidden="true" />
+                <a href={"https://disk.yandex.ru/d/0ShW3r0YsO-I9Q"} className="flex items-center gap-2" target="_blank">
+                  <img src="logo.svg" className='h-10'/>
                   <span className="font-bold md:inline-block">{SiteInfo.name}</span>
                 </a>
               </div>
@@ -200,7 +203,7 @@ function App() {
           // Main content after initialization
           <main className="flex h-screen w-screen overflow-hidden">
             <Tabs
-              defaultValue={currentTab}
+              value={currentTab}
               className="!m-0 flex grow flex-col !p-0 overflow-hidden"
               onValueChange={handleTabChange}
             >
@@ -211,6 +214,9 @@ function App() {
                 </TabsContent>
                 <TabsContent value="knowledge-graph" className="absolute top-0 right-0 bottom-0 left-0 overflow-hidden">
                   <GraphViewer />
+                </TabsContent>
+                <TabsContent value="knowledge-graph-3d" className="absolute top-0 right-0 bottom-0 left-0 overflow-hidden">
+                  <Graph3DViewer graph={sigmaGraph} />
                 </TabsContent>
                 <TabsContent value="retrieval" className="absolute top-0 right-0 bottom-0 left-0 overflow-hidden">
                   <RetrievalView />
@@ -228,5 +234,6 @@ function App() {
     </ThemeProvider>
   )
 }
+
 
 export default App
