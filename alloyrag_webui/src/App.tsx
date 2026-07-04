@@ -6,6 +6,7 @@ import StatusIndicator from '@/components/status/StatusIndicator'
 import { SiteInfo, webuiPrefix } from '@/lib/constants'
 import { useBackendState, useAuthStore } from '@/stores/state'
 import { useSettingsStore } from '@/stores/settings'
+import { useGraphStore } from '@/stores/graph' // <-- Добавил эту строку
 import { getAuthStatus } from '@/api/alloyrag'
 import SiteHeader from '@/features/SiteHeader'
 import { InvalidApiKeyError, RequireApiKeError } from '@/api/alloyrag'
@@ -15,6 +16,7 @@ import GraphViewer from '@/features/GraphViewer'
 import DocumentManager from '@/features/DocumentManager'
 import RetrievalView from '@/features/RetrievalView'
 import ApiSite from '@/features/ApiSite'
+import Graph3DViewer from '@/features/Graph3DViewer' // <-- Добавил эту строку
 
 import { Tabs, TabsContent } from '@/components/ui/Tabs'
 
@@ -22,6 +24,7 @@ function App() {
   const message = useBackendState.use.message()
   const enableHealthCheck = useSettingsStore.use.enableHealthCheck()
   const currentTab = useSettingsStore.use.currentTab()
+  const sigmaGraph = useGraphStore.use.sigmaGraph() // <-- Добавил эту строку
   const [apiKeyAlertOpen, setApiKeyAlertOpen] = useState(false)
   const [initializing, setInitializing] = useState(true) // Add initializing state
   const versionCheckRef = useRef(false); // Prevent duplicate calls in Vite dev mode
@@ -212,6 +215,9 @@ function App() {
                 <TabsContent value="knowledge-graph" className="absolute top-0 right-0 bottom-0 left-0 overflow-hidden">
                   <GraphViewer />
                 </TabsContent>
+                <TabsContent value="knowledge-graph-3d" className="absolute top-0 right-0 bottom-0 left-0 overflow-hidden">
+                  <Graph3DViewer graph={sigmaGraph} />
+                </TabsContent>
                 <TabsContent value="retrieval" className="absolute top-0 right-0 bottom-0 left-0 overflow-hidden">
                   <RetrievalView />
                 </TabsContent>
@@ -228,5 +234,6 @@ function App() {
     </ThemeProvider>
   )
 }
+
 
 export default App
