@@ -23,6 +23,8 @@ interface GraphNode extends NodeObject {
   type?: string;
   neighbors?: GraphNode[];
   links?: GraphLink[];
+  __mesh?: THREE.Mesh; // ✅ Ссылка на 3D объект
+  __originalColor?: string; // ✅ Оригинальный цвет для восстановления
 }
 
 interface GraphLink extends LinkObject {
@@ -36,13 +38,14 @@ interface Graph3DViewerProps {
 
 const Graph3DViewer: React.FC<Graph3DViewerProps> = ({ graph }) => {
   const fgRef = useRef<ForceGraphMethods<GraphNode, GraphLink> | null>(null);
-  const [hoverNode, setHoverNode] = useState<GraphNode | null>(null);
   const [clickedNode, setClickedNode] = useState<GraphNode | null>(null);
   const theme = useSettingsStore.use.theme();
   const [effectiveTheme, setEffectiveTheme] = useState(theme);
   const selectedNodeId = useGraphStore.use.selectedNode();
   const moveToSelectedNode = useGraphStore.use.moveToSelectedNode();
   const { t } = useTranslation();
+  const showPropertyPanel = useSettingsStore.use.showPropertyPanel();
+  const showLegend = useSettingsStore.use.showLegend();
 
   useEffect(() => {
     if (theme === 'system') {
@@ -59,7 +62,11 @@ const Graph3DViewer: React.FC<Graph3DViewerProps> = ({ graph }) => {
   const graphData = useMemo(() => {
     if (!graph) return { nodes: [] as GraphNode[], links: [] as GraphLink[] };
 
-    const nodes: GraphNode[] = graph.nodes().map(nodeId => ({ id: nodeId, ...graph.getNodeAttributes(nodeId) } as GraphNode));
+    const nodes: GraphNode[] = graph.nodes().map(nodeId => ({ 
+      id: nodeId, 
+      ...graph.getNodeAttributes(nodeId) 
+    } as GraphNode));
+    
     const links: GraphLink[] = graph.edges().map(edgeId => {
       const [source, target] = graph.extremities(edgeId);
       return { source: source as string, target: target as string, ...graph.getEdgeAttributes(edgeId) };
@@ -78,6 +85,20 @@ const Graph3DViewer: React.FC<Graph3DViewerProps> = ({ graph }) => {
 
     return { nodes, links };
   }, [graph]);
+
+  // ✅ highlightNodes объявлен ДО useCallback, которые его используют
+  const { highlightNodes, highlightLinks } = useMemo(() => {
+    const hNodes = new Set<GraphNode>();
+    const hLinks = new Set<GraphLink>();
+    const nodeToHighlight =  clickedNode;
+
+    if (nodeToHighlight) {
+      hNodes.add(nodeToHighlight);
+      nodeToHighlight.neighbors?.forEach(neighbor => hNodes.add(neighbor));
+      nodeToHighlight.links?.forEach(link => hLinks.add(link));
+    }
+    return { highlightNodes: hNodes, highlightLinks: hLinks };
+  }, [clickedNode]);
 
   useEffect(() => {
     const node = selectedNodeId ? graphData.nodes.find(n => n.id == selectedNodeId) : null;
@@ -99,23 +120,9 @@ const Graph3DViewer: React.FC<Graph3DViewerProps> = ({ graph }) => {
     }
   }, [selectedNodeId, moveToSelectedNode, graphData.nodes]);
 
-  const { highlightNodes, highlightLinks } = useMemo(() => {
-    const hNodes = new Set<GraphNode>();
-    const hLinks = new Set<GraphLink>();
-    const nodeToHighlight = hoverNode || clickedNode;
-
-    if (nodeToHighlight) {
-      hNodes.add(nodeToHighlight);
-      nodeToHighlight.neighbors?.forEach(neighbor => hNodes.add(neighbor));
-      nodeToHighlight.links?.forEach(link => hLinks.add(link));
-    }
-    return { highlightNodes: hNodes, highlightLinks: hLinks };
-  }, [hoverNode, clickedNode]);
-
   const handleNodeClick = useCallback((node: NodeObject) => {
     const graphNode = node as GraphNode;
     if (selectedNodeId === graphNode.id) {
-      // If the same node is clicked, deselect it
       useGraphStore.getState().setSelectedNode(null, false);
     } else {
       useGraphStore.getState().setSelectedNode(graphNode.id, true);
@@ -123,7 +130,6 @@ const Graph3DViewer: React.FC<Graph3DViewerProps> = ({ graph }) => {
   }, [selectedNodeId]);
 
   const handleNodeHover = useCallback((node: NodeObject | null) => {
-    setHoverNode(node as GraphNode | null);
     useGraphStore.getState().setFocusedNode(node?.id as string | null);
   }, []);
 
@@ -131,8 +137,80 @@ const Graph3DViewer: React.FC<Graph3DViewerProps> = ({ graph }) => {
     useGraphStore.getState().setSelectedNode(null, false);
   }, []);
 
-  const showPropertyPanel = useSettingsStore.use.showPropertyPanel();
-  const showLegend = useSettingsStore.use.showLegend();
+  const getLinkColor = useCallback((link: LinkObject) => {
+    const graphLink = link as GraphLink;
+    const isHighlighted = highlightLinks.has(graphLink);
+    const isFaded = clickedNode !== null && !isHighlighted;
+    
+    if (isFaded) return 'rgba(255, 255, 255, 0.1)';
+    if (isHighlighted) return 'rgb(255, 255, 255)';
+    return 'rgba(255, 255, 255, 0.88)';
+  }, [highlightLinks, clickedNode]);
+
+  // ✅ Создаём mesh ОДИН раз с transparent: true
+  const nodeThreeObject = useCallback((node: NodeObject) => {
+    const graphNode = node as GraphNode;
+    const size = Math.max((graphNode.size || 1), 5);
+    const geometry = new THREE.SphereGeometry(size / 2, 16, 16);
+    
+    const originalColor = graphNode.color || '#ffffff';
+    const material = new THREE.MeshBasicMaterial({
+      color: originalColor,
+      transparent: true, // ✅ Обязательно для работы opacity
+      opacity: 0.75,
+    });
+    
+    const mesh = new THREE.Mesh(geometry, material);
+    
+    // ✅ Сохраняем ссылки для последующего обновления
+    graphNode.__mesh = mesh;
+    graphNode.__originalColor = originalColor;
+    
+    if (graphNode.label) {
+      const sprite = new SpriteText(graphNode.label);
+      sprite.color = originalColor;
+      sprite.textHeight = 6;
+      sprite.center.y = -(graphNode.size || 2)*0.07 -0.5;
+      sprite.material.transparent = true;
+      sprite.material.opacity = 0.6;
+      mesh.add(sprite);
+      mesh.userData.labelSprite = sprite;
+    }
+    
+    return mesh;
+  }, []);
+
+  // ✅ Обновляем материал при изменении hover/click
+  useEffect(() => {
+    graphData.nodes.forEach(node => {
+      const mesh = node.__mesh;
+      if (!mesh) return;
+      
+      const material = mesh.material as THREE.MeshBasicMaterial;
+      const isHighlighted = highlightNodes.has(node);
+      const isFaded = clickedNode !== null && !isHighlighted;
+      const isMain = node === clickedNode;
+      
+      // ✅ Обновляем opacity
+      material.opacity = isFaded ? 0.15 : (isHighlighted ? 1.0 : 0.75);
+      
+      // ✅ Обновляем цвет для подсветки
+      if (isHighlighted) {
+        material.color.set('#4488ff');
+      } else {
+        material.color.set(node.__originalColor || '#ffffff');
+      }
+      
+      material.needsUpdate = true;
+      
+      // ✅ Обновляем opacity текста
+      if (mesh.userData.labelSprite) {
+        const spriteMaterial = mesh.userData.labelSprite.material;
+        spriteMaterial.opacity = material.opacity;
+        spriteMaterial.needsUpdate = true;
+      }
+    });
+  }, [highlightNodes, clickedNode, graphData.nodes]);
 
   if (!graph) return null;
 
@@ -142,42 +220,27 @@ const Graph3DViewer: React.FC<Graph3DViewerProps> = ({ graph }) => {
         ref={fgRef as any}
         graphData={graphData}
         backgroundColor={effectiveTheme === 'dark' ? '#0c0c0d' : '#e6e6e6'}
-        showPointerCursor={obj=>obj?true:false}
+        showPointerCursor={obj => obj ? true : false}
         nodeLabel="label"
-        nodeAutoColorBy="type"
-        nodeThreeObjectExtend={true}
-        nodeThreeObject={node => {
-          const graphNode = node as GraphNode;
-          const isHighlighted = highlightNodes.has(graphNode);
-          const isFaded = clickedNode !== null && !isHighlighted;
-          const material = new THREE.MeshStandardMaterial({
-            color: graphNode.color || 'white',
-            transparent: true,
-            opacity: isFaded ? 0.15 : (isHighlighted ? 1.0 : 0.75),
-          });
-          if (isHighlighted) {
-            material.emissive = new THREE.Color('blue');
-            material.emissiveIntensity = (graphNode === clickedNode || graphNode === hoverNode) ? 0.2 : 0.1;
-          }
-          const sphere = new THREE.Mesh(new THREE.SphereGeometry(Math.max((graphNode.size || 1) / 2, 5)), material);
-          if (graphNode.label) {
-            const sprite = new SpriteText(graphNode.label);
-            sprite.color = graphNode.color || 'white';
-            sprite.textHeight = 8;
-            sprite.center.y = -(graphNode.size || 10) * 0.07 - 0.2;
-            sprite.material.opacity = isFaded ? 0.15 : 1.0;
-            sphere.add(sprite);
-          }
-          return sphere;
-        }}
-        linkColor={link => {
-          const isFaded = clickedNode !== null && !highlightLinks.has(link as GraphLink);
-          return isFaded ? 'rgba(255, 255, 255, 0.1)' : (highlightLinks.has(link as GraphLink) ? 'rgb(255, 255, 255)' : 'rgba(255, 255, 255, 0.88)');
-        }}
+        
+        // ✅ Убираем nodeAutoColorBy — цвет управляется через nodeThreeObject
+        // ✅ Убираем nodeOpacity — это глобальное число, не подходит
+        
+        nodeThreeObjectExtend={false} // ✅ Заменяем стандартную сферу
+        nodeThreeObject={nodeThreeObject}
+        
+        linkColor={getLinkColor}
         linkOpacity={0.8}
+        linkWidth={0.5}
+        
         onNodeClick={handleNodeClick}
         onNodeHover={handleNodeHover}
         onBackgroundClick={handleBackgroundClick}
+        
+        // ✅ Оптимизация симуляции
+        warmupTicks={50}
+        cooldownTicks={100}
+        cooldownTime={1000}
       />
       <div className="absolute top-2 left-2 flex items-start gap-2">
         <GraphLabels />
@@ -209,4 +272,3 @@ const Graph3DViewer: React.FC<Graph3DViewerProps> = ({ graph }) => {
 };
 
 export default Graph3DViewer;
-
