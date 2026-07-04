@@ -9,6 +9,7 @@
   "header": {
     "documents": "Documents",
     "knowledgeGraph": "Knowledge Graph",
+    "knowledgeGraph3D": "3D Knowledge Graph",
     "retrieval": "Retrieval",
     "api": "API",
     "projectRepository": "Project Repository",

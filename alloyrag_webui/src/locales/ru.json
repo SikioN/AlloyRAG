@@ -9,6 +9,7 @@
   "header": {
     "documents": "Документы",
     "knowledgeGraph": "Граф знаний",
+    "knowledgeGraph3D": "3D Граф знаний",
     "retrieval": "Поиск",
     "api": "API",
     "projectRepository": "Репозиторий проекта",

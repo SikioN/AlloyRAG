@@ -3,16 +3,7 @@ import { initReactI18next } from 'react-i18next'
 import { useSettingsStore } from '@/stores/settings'
 
 import en from './locales/en.json'
-import zh from './locales/zh.json'
-import fr from './locales/fr.json'
-import ar from './locales/ar.json'
-import zh_TW from './locales/zh_TW.json'
 import ru from './locales/ru.json'
-import ja from './locales/ja.json'
-import de from './locales/de.json'
-import uk from './locales/uk.json'
-import ko from './locales/ko.json'
-import vi from './locales/vi.json'
 
 const getStoredLanguage = () => {
   try {
@@ -32,16 +23,7 @@ i18n
   .init({
     resources: {
       en: { translation: en },
-      zh: { translation: zh },
-      fr: { translation: fr },
-      ar: { translation: ar },
-      zh_TW: { translation: zh_TW },
-      ru: { translation: ru },
-      ja: { translation: ja },
-      de: { translation: de },
-      uk: { translation: uk },
-      ko: { translation: ko },
-      vi: { translation: vi }
+      ru: { translation: ru }
     },
     lng: getStoredLanguage(), // Use stored language settings
     fallbackLng: 'en',
