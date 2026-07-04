@@ -8,12 +8,12 @@ A lightweight Knowledge Graph Retrieval-Augmented Generation system with multipl
 
 ```bash
 # Linux/MacOS
-git clone https://github.com/HKUDS/AlloyRAG.git
+git clone https://github.com/SikioN/AlloyRAG.git
 cd AlloyRAG
 ```
 ```powershell
 # Windows PowerShell
-git clone https://github.com/HKUDS/AlloyRAG.git
+git clone https://github.com/SikioN/AlloyRAG.git
 cd AlloyRAG
 ```
 
@@ -122,7 +122,7 @@ The official images run the server as a non-root user (`alloyrag`, uid/gid `1000
 - If you instead start the container with an explicit non-root user (Compose `user: "1000:1000"` or Kubernetes `runAsUser: 1000`), the startup `chown` is skipped — make sure the mounted directories are already owned by that uid.
 - `.env` is **not** chowned, so the host keeps ownership and you can edit it freely. It only needs to be *readable* by uid 1000, which the default `0644` permission satisfies. A `.env` mounted read-only as `0600`/`0400` owned by a different uid will fail to load (clear `PermissionError` at startup); make it readable by uid 1000, or supply configuration via environment variables instead (`env_file:` / `environment:`, or k8s `env` / `envFrom`).
 
-Passing server flags still works as before, e.g. `docker run ghcr.io/hkuds/alloyrag:latest --port 9622`.
+Passing server flags still works as before, e.g. `docker run ghcr.io/SikioN/AlloyRAG:latest --port 9622`.
 
 > Note: the image starts as root and drops privileges at runtime (the pattern used by the official PostgreSQL/Redis images), so the *running process* is non-root while the image's configured `USER` is still root. Scanners that judge CIS 4.1 purely from the `USER` directive may still flag the image even though no server process runs as root.
 
@@ -349,8 +349,8 @@ Official AlloyRAG images published to GitHub Container Registry by GitHub Action
 Install `cosign`, then verify the image tag you want to run:
 
 ```bash
-cosign verify ghcr.io/HKUDS/AlloyRAG:<tag> \
-  --certificate-identity-regexp '^https://github.com/HKUDS/AlloyRAG/.github/workflows/(docker-publish|docker-build-manual|docker-build-lite)\.yml@refs/.+$' \
+cosign verify ghcr.io/SikioN/AlloyRAG:<tag> \
+  --certificate-identity-regexp '^https://github.com/SikioN/AlloyRAG/.github/workflows/(docker-publish|docker-build-manual|docker-build-lite)\.yml@refs/.+$' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 

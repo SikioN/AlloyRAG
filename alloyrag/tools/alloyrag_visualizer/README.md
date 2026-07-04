@@ -126,7 +126,7 @@ The viewer is particularly useful for:
 
 ## Support
 
-- GitHub Issues: [AlloyRAG Repository](https://github.com/HKUDS/AlloyRAG)
+- GitHub Issues: [AlloyRAG Repository](https://github.com/SikioN/AlloyRAG)
 - Documentation: [AlloyRAG Docs](https://URL-to-docs)
 
 ## License

@@ -1,11 +1,11 @@
 services:
   alloyrag:
-    image: ghcr.io/hkuds/alloyrag:latest
+    image: ghcr.io/SikioN/AlloyRAG:latest
     build:
       context: .
       dockerfile: Dockerfile
       tags:
-        - ghcr.io/hkuds/alloyrag:latest
+        - ghcr.io/SikioN/AlloyRAG:latest
     ports:
       - "${HOST:-0.0.0.0}:${PORT:-9621}:9621"
     volumes:

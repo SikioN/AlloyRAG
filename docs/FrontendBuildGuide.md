@@ -31,7 +31,7 @@ pip install alloyrag-hku[api]
 **Command:**
 ```bash
 # Clone the repository
-git clone https://github.com/HKUDS/AlloyRAG.git
+git clone https://github.com/SikioN/AlloyRAG.git
 cd AlloyRAG
 
 # Install in editable mode (no frontend build required yet)
@@ -61,7 +61,7 @@ cd ..
 **Command:**
 ```bash
 # Clone the repository
-git clone https://github.com/HKUDS/AlloyRAG.git
+git clone https://github.com/SikioN/AlloyRAG.git
 cd AlloyRAG
 
 # ⚠️ MUST build frontend FIRST

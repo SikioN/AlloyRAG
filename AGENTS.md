@@ -326,5 +326,5 @@ Comments, backend code, and log messages in English. Frontend uses i18next for m
 
 ## Commit and Pull Request Guidance
 
-- If this repo is a fork of `HKUDS/AlloyRAG`. Target to `HKUDS/AlloyRAG` when creating PRs, not the fork's own repo.
+- If this repo is a fork of `SikioN/AlloyRAG`. Target to `SikioN/AlloyRAG` when creating PRs, not the fork's own repo.
 - PR descriptions should include: summary, motivation, linked issues if applyed, what's changed, what's broken and how it works.
