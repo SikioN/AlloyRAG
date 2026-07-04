@@ -10,7 +10,7 @@ The AlloyRAG Server is designed to provide a Web UI and API support. The Web UI 
 
 ## Upgrading from v1.4.16 to v1.5.0rc2
 
-The v1.5.0rc2 release adds the new file-processing pipeline, parser routing, multimodal analysis, role-specific LLM/VLM configuration, JSON entity extraction, and several provider/storage changes. Review the [v1.5.0rc2 release notes](https://github.com/HKUDS/AlloyRAG/releases/tag/v1.5.0rc2) before upgrading a production instance.
+The v1.5.0rc2 release adds the new file-processing pipeline, parser routing, multimodal analysis, role-specific LLM/VLM configuration, JSON entity extraction, and several provider/storage changes. Review the [v1.5.0rc2 release notes](https://github.com/SikioN/AlloyRAG/releases/tag/v1.5.0rc2) before upgrading a production instance.
 
 - To keep the old file-processing behavior while upgrading the server, set:
 
@@ -45,7 +45,7 @@ uv tool install "alloyrag-hku[api]"
 
 ```bash
 # Clone the repository
-git clone https://github.com/HKUDS/alloyrag.git
+git clone https://github.com/SikioN/AlloyRAG.git
 
 # Change to the repository directory
 cd alloyrag
@@ -223,7 +223,7 @@ docker compose up
 # If you want the program to run in the background after startup, add the -d parameter at the end of the command.
 ```
 
-You can get the official docker compose file from here: [docker-compose.yml](https://raw.githubusercontent.com/HKUDS/AlloyRAG/refs/heads/main/docker-compose.yml). For historical versions of AlloyRAG docker images, visit this link: [AlloyRAG Docker Images](https://github.com/HKUDS/AlloyRAG/pkgs/container/alloyrag). For more details about docker deployment, please refer to [DockerDeployment.md](./DockerDeployment.md).
+You can get the official docker compose file from here: [docker-compose.yml](https://raw.githubusercontent.com/SikioN/AlloyRAG/refs/heads/main/docker-compose.yml). For historical versions of AlloyRAG docker images, visit this link: [AlloyRAG Docker Images](https://github.com/SikioN/AlloyRAG/pkgs/container/alloyrag). For more details about docker deployment, please refer to [DockerDeployment.md](./DockerDeployment.md).
 
 ### Progressive Setup Recipes
 

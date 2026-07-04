@@ -27,7 +27,7 @@ Both misuse modes have the same fix: use the ``a*`` coroutine directly.
 about to drive against ``owning_loop``, raising one clear, actionable error for
 each.  These tests pin that behaviour (and guard against regressing back to the
 misleading "deadlock" wording / un-awaited-coroutine leak). See
-HKUDS/AlloyRAG #1968.
+SikioN/AlloyRAG #1968.
 """
 
 import asyncio

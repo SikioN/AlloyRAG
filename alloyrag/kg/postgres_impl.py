@@ -4801,8 +4801,18 @@ def _parse_doc_status_datetime(
         return datetime.datetime(
             dt_str.year, dt_str.month, dt_str.day, tzinfo=timezone.utc
         ).replace(tzinfo=None)
+    if isinstance(dt_str, (int, float)):
+        # Unix timestamp — convert directly to UTC datetime
+        try:
+            return datetime.datetime.fromtimestamp(dt_str, tz=timezone.utc).replace(tzinfo=None)
+        except (OSError, OverflowError, ValueError) as e:
+            logger.error(
+                f"Unable to parse doc status datetime from Unix timestamp"
+                f"{f' ({context})' if context else ''}: {dt_str!r} — {e}"
+            )
+            return None
     try:
-        dt = datetime.datetime.fromisoformat(dt_str)
+        dt = datetime.datetime.fromisoformat(str(dt_str))
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
         return dt.astimezone(timezone.utc).replace(tzinfo=None)

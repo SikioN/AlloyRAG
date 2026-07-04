@@ -12,53 +12,58 @@ from alloyrag.prompt import PROMPTS
 # Load environment variables
 load_dotenv()
 
-# Override default entity types guidance to focus on Material Science
+# Override default entity types guidance to focus on Metallurgical R&D Case Study
 PROMPTS[
     "default_entity_types_guidance"
 ] = """Classify each entity using one of the following types. If no type fits, use `Other`.
 
-- Alloy: Alloy names, chemical systems, compositions, materials (e.g., Ni-based superalloy, Ti-6Al-4V, steel).
-- Mode: Process modes, parameters, temperatures, heat treatments, conditions (e.g., hot rolling, annealing at 1000°C, aging for 4h, casting, cooling rate).
-- Property: Material properties, characteristics, measurements, mechanical/physical/chemical tests (e.g., tensile strength, hardness, microhardness, elongation, yield strength, yield stress).
-- Equipment: Experimental equipment, installations, machines, microscopes, furnaces, testing rigs.
-- ResearchTeam: Research groups, laboratories, scientists, investigators, authors, institutes.
-- Outcome: Experimental results, conclusions, effect descriptions, microstructural features (e.g., grain growth, phase transformation, recrystallization, dislocation, crack formation).
-- Concept: Abstract ideas, theories, principles, beliefs (e.g., thermodynamic equilibrium, recrystallization kinetics, grain boundaries)."""
+- Material: Metals, alloys, compositions, solutions, chemical compounds, or residues (e.g., Ni-based superalloy, сульфаты, католит, медный штейн, никелевая руда).
+- Process: Technological processes, chemical reactions, experimental modes, or treatments (e.g., кучное выщелачивание, электроэкстракция, пиролиз, обессоливание воды).
+- Equipment: Experimental or industrial setups, furnaces, cells, or measurement rigs (e.g., ванны электроэкстракции, печь взвешенной плавки (ПВП), диафрагменные ячейки).
+- Property: Physical, mechanical, chemical, or economic properties (e.g., сухой остаток, выход металла, капитальные затраты).
+- Experiment: Specific R&D test protocols, parameter sets, or trial runs (e.g., опыт №5, выщелачивание при 90°C).
+- Publication: Patents, scientific papers, technical reports, or theses (e.g., Доклад Вострикова, патент РФ №12345).
+- Expert: Laboratory teams, scientists, investigators, or competency owners (e.g., Институт Гипроникель, ТренингБутик, Востриков Н.М.).
+- Facility: Geographical locations, plants, laboratories, or factories (e.g., Россия, Харьявалта, обогатительная фабрика).
+- Condition: Environmental, geographic, or physical conditions (e.g., холодный климат, глубокие горизонты, мировая практика, отечественная практика).
+- Parameter: Numeric metrics, ranges, or targets (e.g., сухой остаток <= 1000 мг/дм³, сульфаты 200-300 мг/л).
+- Indicator: Technical or economic performance indicators (e.g., производительность: от 100 т/сут, капекс, опекс).
 
-# Customize RAG response prompts to guide the LLM to highlight alloy-property relations and gaps
+During relationship extraction, always represent relationships using these keywords:
+- uses_material: A process/equipment uses a specific material.
+- operates_at_condition: A process/experiment runs at specific parameters/conditions (temperature, flow rate, concentrations).
+- produces_output: A process/experiment yields a specific product, property, or outcome.
+- described_in: A process, material, or experiment is documented in a publication.
+- validated_by: A fact or relation is validated by an experiment, expert, or publication.
+- contradicts: Highlight conflicting facts or parameters across different sources."""
+
+# Customize RAG response prompts to guide the LLM to highlight metallurgical relations and gaps
 PROMPTS["rag_response"] = """---Role---
 
-You are an expert AI assistant specializing in materials science and metallurgy. Your primary function is to answer user queries accurately by using both the structured Knowledge Graph and the text snippets in the provided Context.
+You are an expert AI assistant specializing in metallurgy, mineral processing, and industrial gas/water treatment. Your primary function is to answer user queries accurately by using the structured Knowledge Graph and the text snippets in the provided Context.
 
 ---Goal---
 
-Generate a comprehensive, well-structured answer to the user query.
-Specifically highlight relations between:
-1. Alloys (сплавы)
-2. Modes of processing (режимы обработки)
-3. Resulting Properties (свойства)
-Also, identify and highlight any "gaps in data" (пробелы в данных) if the query asks about combinations of alloys, modes, or properties that are not present in the context.
+Generate a comprehensive, well-structured, and precise response in Russian to the user query.
+
+Specifically highlight:
+1. Relations between Materials, Processes, Equipment, and resulting Properties (using uses_material, operates_at_condition, produces_output relationships).
+2. Numeric thresholds, ranges, and target values (e.g. concentrations, flow rates, temperatures, costs).
+3. Geographical split: distinguish domestic (отечественная практика) vs. foreign (зарубежная практика) solutions where applicable.
+4. "Gaps in data" (пробелы в данных) if the query asks about combinations of materials, modes, or properties that are not present or documented.
 
 ---Instructions---
 
-1. Step-by-Step Instruction:
-  - Carefully determine the user's query intent to fully understand the user's information need.
-  - Scrutinize both `Knowledge Graph Data` and `Document Chunks` in the Context. Identify and extract all pieces of information that are directly relevant.
-  - Structure the response with clear headings (e.g., Summary, Alloys and Processing Modes, Resulting Properties, Gaps/Missing Data if applicable).
-  - Track the reference_id of the document chunks that support your facts and cite them.
-  - Generate a references section at the end.
+1. Step-by-Step response construction:
+   - Analyze the query's intent (e.g., checking for specific concentration limits, circulation rates, or gold/silver distribution).
+   - Review both `Knowledge Graph Data` and `Document Chunks`. Match entities and numeric values carefully.
+   - Structure the response with clear headings (e.g., Суммарный ответ, Технологические решения, Параметры и показатели, Отечественная vs. Зарубежная практика, Пробелы в данных / Ограничения).
+   - Cite source documents with `[n]` referencing the source ID or title.
+   - Output a list of sources at the end under `### Источники`.
 
 2. Content & Grounding:
-  - Strictly adhere to the provided context; DO NOT invent, assume, or infer any information not explicitly stated.
-  - If the answer cannot be found in the Context, state clearly that you do not have enough information to answer. Do not guess.
-
-3. Formatting & Language:
-  - The response MUST be in the same language as the user query (typically Russian).
-  - Use Markdown (headings, bold text, lists).
-
-4. References Section Format:
-  - Under heading: `### References` or `### Источники` (match query language).
-  - Format: `* [n] Document Title`
+   - Strictly adhere to the provided context; DO NOT invent or assume any facts.
+   - If information for a specific constraint (e.g. "≤1000 мг/дм³") is not found, state that explicitly.
 
 {user_prompt}
 
@@ -66,6 +71,22 @@ Also, identify and highlight any "gaps in data" (пробелы в данных)
 
 {context_data}
 """
+
+# Dynamic prompt injection for Entity Extraction (adds numerical constraints and geography rules)
+extraction_guidance = """
+  - **Numeric & Geographic Focus:** Pay close attention to numerical values, ranges, and units (e.g., concentrations like "200–300 мг/л", limits like "≤1000 мг/дм³", flow rates, temperatures). Always include these numeric values and their exact units in the descriptions.
+  - **Geographic & Practice Context:** Distinguish between domestic (отечественная практика, РФ) and foreign (зарубежная практика, импортные аналоги, конкретные страны) technologies and record this in the entity description and facility/condition relationships.
+"""
+
+if "entity_extraction_json_system_prompt" in PROMPTS:
+    PROMPTS["entity_extraction_json_system_prompt"] = PROMPTS[
+        "entity_extraction_json_system_prompt"
+    ].replace("1. **Entity Extraction:**", "1. **Entity Extraction:**" + extraction_guidance)
+
+if "entity_extraction_system_prompt" in PROMPTS:
+    PROMPTS["entity_extraction_system_prompt"] = PROMPTS[
+        "entity_extraction_system_prompt"
+    ].replace("1. **Entity Extraction:**", "1. **Entity Extraction:**" + extraction_guidance)
 
 
 class LocalSentenceTransformerEmbedder:
@@ -91,15 +112,25 @@ class LocalSentenceTransformerEmbedder:
 
         # sentence-transformers encode is synchronous, run in executor to avoid blocking the event loop
         loop = asyncio.get_event_loop()
-        # Add prefixes if model expects them (like e5 models which expect "query: " or "passage: ")
-        processed_texts = []
+        
+        # Read user-defined prefixes from environment variables
+        query_prefix = os.getenv("EMBEDDING_QUERY_PREFIX")
+        document_prefix = os.getenv("EMBEDDING_DOCUMENT_PREFIX")
+        
+        # Apply defaults for E5 models if not explicitly specified
         is_e5 = "e5" in self.model_name.lower()
+        if is_e5:
+            if query_prefix is None:
+                query_prefix = "query: "
+            if document_prefix is None:
+                document_prefix = "passage: "
+
+        processed_texts = []
         for text in texts:
-            if is_e5:
-                if context == "query":
-                    processed_texts.append(f"query: {text}")
-                else:
-                    processed_texts.append(f"passage: {text}")
+            if context == "query" and query_prefix:
+                processed_texts.append(query_prefix + text)
+            elif context == "document" and document_prefix:
+                processed_texts.append(document_prefix + text)
             else:
                 processed_texts.append(text)
 
@@ -123,22 +154,36 @@ def get_rag_instance() -> AlloyRAG:
     os.makedirs(working_dir, exist_ok=True)
     os.makedirs(input_dir, exist_ok=True)
 
+    llm_binding = os.getenv("LLM_BINDING", "ollama").lower()
     llm_model = os.getenv("LLM_MODEL", "llama3.2:latest")
     llm_host = os.getenv("LLM_BINDING_HOST", "http://localhost:11434")
 
     # 1. Initialize LLM Complete Function
-    llm_model_func = ollama_model_complete
-    # timeout=300: llama3.2 on Mac can be slow generating long responses (17 entities + 25 relations context).
-    # num_ctx=8192: Ollama's default context window is only 2048 tokens — not enough for full KG context.
-    llm_model_kwargs = {
-        "host": llm_host,
-        "timeout": 300,
-        "options": {
-            "num_ctx": 8192,  # Expand context window (default in Ollama = 2048, too small)
-            "num_predict": 2048,  # Max tokens in response
-            "temperature": 0.1,  # Low temperature for factual/consistent answers
-        },
-    }
+    if llm_binding == "openai":
+        from alloyrag.llm.openai import openai_complete
+        llm_model_func = openai_complete
+        # Set up kwargs for OpenAI or OpenAI-compatible endpoint
+        llm_model_kwargs = {
+            "api_key": os.getenv("LLM_BINDING_API_KEY") or os.getenv("OPENAI_API_KEY"),
+            "base_url": os.getenv("LLM_BINDING_HOST") or os.getenv("OPENAI_BASE_URL"),
+            "timeout": 300,
+        }
+        # If no specific model is set in env, default to gpt-4o-mini
+        if os.getenv("LLM_MODEL") is None:
+            llm_model = "gpt-4o-mini"
+    else:
+        llm_model_func = ollama_model_complete
+        # timeout=300: llama3.2 on Mac can be slow generating long responses (17 entities + 25 relations context).
+        # num_ctx=8192: Ollama's default context window is only 2048 tokens — not enough for full KG context.
+        llm_model_kwargs = {
+            "host": llm_host,
+            "timeout": 300,
+            "options": {
+                "num_ctx": 8192,  # Expand context window (default in Ollama = 2048, too small)
+                "num_predict": 2048,  # Max tokens in response
+                "temperature": 0.1,  # Low temperature for factual/consistent answers
+            },
+        }
 
     # 2. Initialize Embedding Function
     embedding_binding = os.getenv("EMBEDDING_BINDING", "local_huggingface")
@@ -151,6 +196,23 @@ def get_rag_instance() -> AlloyRAG:
         embedding_func = EmbeddingFunc(
             embedding_dim=embedder.embedding_dim,
             func=embedder,
+            model_name=embedding_model,
+            supports_asymmetric=True,
+        )
+    elif embedding_binding == "openai":
+        from alloyrag.llm.openai import openai_embed
+        _embedding_token_limit_str = os.getenv("EMBEDDING_TOKEN_LIMIT", "2048")
+        _embedding_max_token_size = int(_embedding_token_limit_str) if _embedding_token_limit_str else 2048
+        embedding_func = EmbeddingFunc(
+            embedding_dim=embedding_dim,
+            max_token_size=_embedding_max_token_size,
+            func=functools.partial(
+                openai_embed.func,
+                model=embedding_model,
+                base_url=os.getenv("EMBEDDING_BINDING_HOST") or os.getenv("LLM_BINDING_HOST"),
+                api_key=os.getenv("EMBEDDING_BINDING_API_KEY") or os.getenv("LLM_BINDING_API_KEY"),
+                max_token_size=_embedding_max_token_size,
+            ),
             model_name=embedding_model,
             supports_asymmetric=True,
         )
@@ -177,10 +239,10 @@ def get_rag_instance() -> AlloyRAG:
         llm_model_name=llm_model,
         llm_model_kwargs=llm_model_kwargs,
         embedding_func=embedding_func,
-        kv_storage="JsonKVStorage",
-        vector_storage="NanoVectorDBStorage",
-        graph_storage="NetworkXStorage",
-        doc_status_storage="JsonDocStatusStorage",
+        kv_storage=os.getenv("ALLOYRAG_KV_STORAGE") or os.getenv("KV_STORAGE") or "JsonKVStorage",
+        vector_storage=os.getenv("ALLOYRAG_VECTOR_STORAGE") or os.getenv("VECTOR_STORAGE") or "NanoVectorDBStorage",
+        graph_storage=os.getenv("ALLOYRAG_GRAPH_STORAGE") or os.getenv("GRAPH_STORAGE") or "NetworkXStorage",
+        doc_status_storage=os.getenv("ALLOYRAG_DOC_STATUS_STORAGE") or os.getenv("DOC_STATUS_STORAGE") or "JsonDocStatusStorage",
         vlm_process_enable=False,
     )
 

@@ -42,4 +42,4 @@ def __getattr__(name: str) -> Any:
 
 
 __author__ = "Zirui Guo"
-__url__ = "https://github.com/HKUDS/AlloyRAG"
+__url__ = "https://github.com/SikioN/AlloyRAG"

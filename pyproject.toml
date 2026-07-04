@@ -40,6 +40,8 @@ dependencies = [
     "tenacity",
     "tiktoken",
     "xlsxwriter>=3.1.0",
+    "beautifulsoup4",
+    "xlrd>=2.0.1",
 ]
 
 [project.optional-dependencies]
@@ -129,6 +131,7 @@ offline-llm = [
     "llama-index-llms-openai>=0.6.12",  # Explicitly require version that supports openai 2.x
     "google-api-core>=2.0.0,<3.0.0",
     "google-genai>=1.0.0,<3.0.0",
+    "sentence-transformers",
 ]
 
 offline = [
@@ -155,6 +158,11 @@ observability = [
     "langfuse>=3.8.1",
 ]
 
+web-search = [
+    "ddgs>=9.0",
+]
+
+
 [project.scripts]
 alloyrag-server = "alloyrag.api.alloyrag_server:main"
 alloyrag-gunicorn = "alloyrag.api.run_with_gunicorn:main"
@@ -164,10 +172,10 @@ alloyrag-clean-llmqc = "alloyrag.tools.clean_llm_query_cache:main"
 alloyrag-rebuild-vdb = "alloyrag.tools.rebuild_vdb:main"
 
 [project.urls]
-Homepage = "https://github.com/HKUDS/AlloyRAG"
-Documentation = "https://github.com/HKUDS/AlloyRAG"
-Repository = "https://github.com/HKUDS/AlloyRAG"
-"Bug Tracker" = "https://github.com/HKUDS/AlloyRAG/issues"
+Homepage = "https://github.com/SikioN/AlloyRAG"
+Documentation = "https://github.com/SikioN/AlloyRAG"
+Repository = "https://github.com/SikioN/AlloyRAG"
+"Bug Tracker" = "https://github.com/SikioN/AlloyRAG/issues"
 
 [tool.setuptools.packages.find]
 include = ["alloyrag*"]

@@ -2655,7 +2655,7 @@ def main():
     # race conditions with uvicorn's socket binding that can cause the server
     # to report it's running while the port is never actually bound.
     # Using SelectorEventLoop resolves this issue.
-    # See: https://github.com/HKUDS/AlloyRAG/issues/2438
+    # See: https://github.com/SikioN/AlloyRAG/issues/2438
     if sys.platform == "win32":
         import asyncio
 

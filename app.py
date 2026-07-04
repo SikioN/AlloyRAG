@@ -2,7 +2,7 @@ import os
 import shutil
 import asyncio
 
-from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,6 +20,8 @@ from alloyrag.utils import logger
 from alloyrag.api.routers.document_routes import create_document_routes, DocumentManager
 from alloyrag.api.routers.query_routes import create_query_routes
 from alloyrag.api.routers.graph_routes import create_graph_routes
+from fastapi.security import OAuth2PasswordRequestForm
+from alloyrag.api.auth import auth_handler
 
 load_dotenv()
 
@@ -66,6 +68,16 @@ async def run_indexing_pipeline():
         logger.info("Background indexing pipeline started...")
         # Call the async version directly on the main event loop
         await ascan_and_ingest_inputs()
+        
+        # Run synonym resolution automatically after indexing completes
+        try:
+            logger.info("Starting automated synonym resolution & entity merging...")
+            from scripts.merge_synonyms import run_merging_pipeline
+            await run_merging_pipeline()
+            logger.info("Automated synonym resolution completed successfully.")
+        except Exception as e:
+            logger.error(f"Failed to run automated synonym resolution: {e}")
+            
         logger.info("Background indexing pipeline completed successfully.")
     except Exception as e:
         logger.error(f"Error in background indexing pipeline: {e}")
@@ -346,17 +358,64 @@ async def get_scan_progress():
 
 
 @app.get("/documents/pipeline_status")
-async def get_pipeline_status():
+async def get_pipeline_status_custom():
     return {"busy": is_indexing_busy, "active": is_indexing_busy, "pending_enqueues": 0}
 
 
 @app.get("/auth-status")
 async def get_auth_status():
+    if not auth_handler.accounts:
+        guest_token = auth_handler.create_token(
+            username="guest", role="guest", metadata={"auth_mode": "disabled"}
+        )
+        return {
+            "auth_configured": False,
+            "access_token": guest_token,
+            "token_type": "bearer",
+            "auth_mode": "disabled",
+            "message": "Authentication is disabled. Using guest access.",
+            "core_version": "1.5.5",
+            "api_version": "1.5.5",
+            "webui_title": "AlloyRAG",
+            "webui_description": "Научный клубок RAG-система",
+        }
     return {
-        "auth_configured": False,
-        "auth_mode": "disabled",
-        "access_token": "guest-token",
+        "auth_configured": True,
+        "auth_mode": "enabled",
+        "core_version": "1.5.5",
+        "api_version": "1.5.5",
+        "webui_title": "AlloyRAG",
+        "webui_description": "Научный клубок RAG-система",
+    }
+
+
+@app.post("/login")
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    if not auth_handler.accounts:
+        guest_token = auth_handler.create_token(
+            username="guest", role="guest", metadata={"auth_mode": "disabled"}
+        )
+        return {
+            "access_token": guest_token,
+            "token_type": "bearer",
+            "auth_mode": "disabled",
+            "message": "Authentication is disabled. Using guest access.",
+            "core_version": "1.5.5",
+            "api_version": "1.5.5",
+            "webui_title": "AlloyRAG",
+            "webui_description": "Научный клубок RAG-система",
+        }
+    username = form_data.username
+    if not auth_handler.verify_password(username, form_data.password):
+        raise HTTPException(status_code=401, detail="Incorrect credentials")
+
+    user_token = auth_handler.create_token(
+        username=username, role="user", metadata={"auth_mode": "enabled"}
+    )
+    return {
+        "access_token": user_token,
         "token_type": "bearer",
+        "auth_mode": "enabled",
         "core_version": "1.5.5",
         "api_version": "1.5.5",
         "webui_title": "AlloyRAG",
@@ -390,8 +449,24 @@ async def health():
 
 # Register standard routers from alloyrag
 rag_instance = get_rag_instance()
+
+# Monkey-patch RAG query implementation to support web search fallback globally (including WebUI)
+original_aquery_llm = rag_instance.aquery_llm
+
+async def patched_aquery_llm(query, param, system_prompt=None):
+    web_enabled = os.getenv("WEB_SEARCH_FALLBACK_ENABLE", "false").lower() == "true"
+    if not web_enabled or param.mode == "bypass" or param.only_need_context:
+        return await original_aquery_llm(query, param, system_prompt)
+        
+    from alloyrag.web_search_wrapper import hybrid_query
+    return await hybrid_query(rag_instance, query, mode=param.mode)
+
+rag_instance.aquery_llm = patched_aquery_llm
+
 doc_manager_instance = DocumentManager("./inputs")
-api_key_val = os.getenv("ALLOYRAG_API_KEY") or os.getenv("ALLOYRAG_API_KEY")
+api_key_val = os.getenv("ALLOYRAG_API_KEY")
+
+logger.info(f"DEBUG: ALLOYRAG_API_KEY value is: {repr(api_key_val)}")
 
 app.include_router(
     create_document_routes(rag_instance, doc_manager_instance, api_key_val)
@@ -440,4 +515,5 @@ if os.path.exists(webui_assets_dir):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)

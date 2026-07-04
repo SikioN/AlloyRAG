@@ -239,7 +239,7 @@ All of native's `NATIVE_*` environment variables and the `.native_raw/` cache di
 - `ALLOYRAG_FORCE_REPARSE_NATIVE` (default `false`): discard the `.native_raw/` cache and re-download external images over the network.
 - `NATIVE_MD_IMAGE_DOWNLOAD_ENABLED` (default `true`): the master switch for external-image downloading; set to `false` to drop all external images.
 
-The remaining download / size / SSRF variables (`NATIVE_MD_IMAGE_DOWNLOAD_TIMEOUT` / `NATIVE_MD_IMAGE_DOWNLOAD_REQUIRED` / `NATIVE_MD_IMAGE_MAX_BYTES` / `NATIVE_MD_IMAGE_MAX_SVG_PIXELS` / `NATIVE_MD_IMAGE_ALLOWED_NON_PUBLIC_CIDRS`) — their meanings and defaults are listed in [env.example](https://github.com/HKUDS/AlloyRAG/blob/main/env.example) at the repository root.
+The remaining download / size / SSRF variables (`NATIVE_MD_IMAGE_DOWNLOAD_TIMEOUT` / `NATIVE_MD_IMAGE_DOWNLOAD_REQUIRED` / `NATIVE_MD_IMAGE_MAX_BYTES` / `NATIVE_MD_IMAGE_MAX_SVG_PIXELS` / `NATIVE_MD_IMAGE_ALLOWED_NON_PUBLIC_CIDRS`) — their meanings and defaults are listed in [env.example](https://github.com/SikioN/AlloyRAG/blob/main/env.example) at the repository root.
 
 Downloaded external images are cached in `<file>.native_raw/` (beside `.parsed/`, analogous to `.mineru_raw`/`.docling_raw`), reused directly when re-parsing the same unchanged file instead of going back over the network; the cache is invalidated when the source content or the size / SVG-pixel / CIDR options above change. When the document is deleted (with "also delete file" checked in the delete dialog), this cache directory is removed together with `.parsed/`.
 
@@ -262,7 +262,7 @@ MINERU_API_MODE=local
 MINERU_LOCAL_ENDPOINT=http://<your_mineru_local_server_ip>:8000
 ```
 
-For the remaining detailed MinerU configuration, refer to the MinerU section of the environment variable example file [env.example](https://github.com/HKUDS/AlloyRAG/blob/main/env.example) at the repository root. The `official` and `local` modes each have different environment variable configurations; read the instructions in the example file carefully.
+For the remaining detailed MinerU configuration, refer to the MinerU section of the environment variable example file [env.example](https://github.com/SikioN/AlloyRAG/blob/main/env.example) at the repository root. The `official` and `local` modes each have different environment variable configurations; read the instructions in the example file carefully.
 
 #### **Local Deployment of the MinerU Service**
 

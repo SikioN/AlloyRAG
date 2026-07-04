@@ -16,7 +16,7 @@ AlloyRAG performs multi-step writes (graph + vector storage). If a vector
 storage write fails at runtime — embedder outage, network timeout, context
 overflow on a high-degree entity — the graph and the vector storage drift
 apart. The most common symptom is the edge-count drift reported in issue
-[#2917](https://github.com/HKUDS/AlloyRAG/issues/2917): graph edges with no
+[#2917](https://github.com/SikioN/AlloyRAG/issues/2917): graph edges with no
 vector counterpart, so `local`/`hybrid` queries miss relations that exist in
 the graph.
 

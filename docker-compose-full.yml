@@ -4,12 +4,10 @@
 # You can customize your setup using the Setup Wizard; for detailed instructions, please refer to docs/InteractiveSetup.md
 services:
   alloyrag:
-    image: ghcr.io/hkuds/alloyrag:latest
+    image: ghcr.io/SikioN/AlloyRAG:latest
     build:
       context: .
       dockerfile: Dockerfile
-      tags:
-        - ghcr.io/hkuds/alloyrag:latest
     ports:
       - "${HOST:-0.0.0.0}:${PORT:-9621}:9621"
     volumes:
@@ -24,6 +22,9 @@ services:
         max_attempts: 10
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     environment:
       # The container must listen on 0.0.0.0 to be reachable via the published port.
       # SECURITY: set ALLOYRAG_API_KEY (or AUTH_ACCOUNTS with TOKEN_SECRET) in .env
@@ -31,7 +32,9 @@ services:
       HOST: "0.0.0.0"
       PORT: "9621"
       EMBEDDING_BINDING_HOST: "http://vllm-embed:8001/v1"
+      EMBEDDING_BINDING_API_KEY: "${VLLM_EMBED_API_KEY:-alloyrag}"
       RERANK_BINDING_HOST: "http://vllm-rerank:8000/rerank"
+      RERANK_BINDING_API_KEY: "${VLLM_RERANK_API_KEY:-alloyrag}"
       POSTGRES_HOST: "postgres"
       POSTGRES_PORT: "5432"
       NEO4J_URI: "neo4j://neo4j:7687"
@@ -44,6 +47,11 @@ services:
       QDRANT_URL: "http://host.docker.internal:6333"
       OPENSEARCH_HOSTS: "host.docker.internal:9200"
       MONGO_URI: "mongodb://root:root@host.docker.internal:27017/"
+      DOCLING_ENDPOINT: "http://docling-serve:5001"
+      WEB_SEARCH_FALLBACK_ENABLE: "${WEB_SEARCH_FALLBACK_ENABLE:-false}"
+      WEB_SEARCH_CONFIDENCE_THRESHOLD: "${WEB_SEARCH_CONFIDENCE_THRESHOLD:-0.3}"
+      WEB_SEARCH_MAX_RESULTS: "${WEB_SEARCH_MAX_RESULTS:-5}"
+      WEB_SEARCH_ENGINE: "${WEB_SEARCH_ENGINE:-duckduckgo}"
     depends_on:
       vllm-embed:
         condition: service_healthy
@@ -63,7 +71,8 @@ services:
       --model ${VLLM_EMBED_MODEL:-BAAI/bge-m3}
       --port ${VLLM_EMBED_PORT:-8001}
       --dtype float16
-      --api-key ${VLLM_EMBED_API_KEY}
+      --gpu-memory-utilization 0.2
+      --api-key ${VLLM_EMBED_API_KEY:-alloyrag}
       ${VLLM_EMBED_EXTRA_ARGS:-}
     environment:
       NVIDIA_VISIBLE_DEVICES: ${NVIDIA_VISIBLE_DEVICES:-all}
@@ -74,9 +83,7 @@ services:
       - vllm_embed_cache:/root/.cache/huggingface
     ipc: host
     healthcheck:
-      test:
-        - CMD-SHELL
-        - 'PORT_HEX="$(printf ''%04X'' ${VLLM_EMBED_PORT:-8001})"; cat /proc/net/tcp /proc/net/tcp6 2>/dev/null | grep -q ":$${PORT_HEX} "'
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
       interval: 5s
       timeout: 3s
       retries: 120
@@ -97,7 +104,8 @@ services:
       --model ${VLLM_RERANK_MODEL:-BAAI/bge-reranker-v2-m3}
       --port ${VLLM_RERANK_PORT:-8000}
       --dtype float16
-      --api-key ${VLLM_RERANK_API_KEY}
+      --gpu-memory-utilization 0.2
+      --api-key ${VLLM_RERANK_API_KEY:-alloyrag}
       ${VLLM_RERANK_EXTRA_ARGS:-}
     environment:
       NVIDIA_VISIBLE_DEVICES: ${NVIDIA_VISIBLE_DEVICES:-all}
@@ -108,9 +116,7 @@ services:
       - vllm_rerank_cache:/root/.cache/huggingface
     ipc: host
     healthcheck:
-      test:
-        - CMD-SHELL
-        - 'PORT_HEX="$(printf ''%04X'' ${VLLM_RERANK_PORT:-8000})"; cat /proc/net/tcp /proc/net/tcp6 2>/dev/null | grep -q ":$${PORT_HEX} "'
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 5s
       timeout: 3s
       retries: 120
@@ -132,9 +138,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
-      test:
-        - CMD-SHELL
-        - 'PORT_HEX="$(printf ''%04X'' 5432)"; cat /proc/net/tcp /proc/net/tcp6 2>/dev/null | grep -q ":$${PORT_HEX} "'
+      test: ["CMD-SHELL", "pg_isready -U rag"]
       interval: 5s
       timeout: 3s
       retries: 120
@@ -153,16 +157,14 @@ services:
     volumes:
       - neo4j_data:/data
     healthcheck:
-      test:
-        - CMD-SHELL
-        - 'PORT_HEX="$(printf ''%04X'' 7687)"; cat /proc/net/tcp /proc/net/tcp6 2>/dev/null | grep -q ":$${PORT_HEX} "'
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:7474/ || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 120
       start_period: 10s
     restart: unless-stopped
     environment:
-      NEO4J_AUTH: ${NEO4J_USERNAME:?missing}/${NEO4J_PASSWORD:?missing}
+      NEO4J_AUTH: ${NEO4J_USERNAME:-neo4j}/${NEO4J_PASSWORD:-mysecretpassword}
       NEO4J_dbms_default__database: "neo4j"
 
   milvus:
@@ -173,8 +175,8 @@ services:
     environment:
       ETCD_ENDPOINTS: milvus-etcd:2379
       MINIO_ADDRESS: milvus-minio:9000
-      MINIO_ACCESS_KEY_ID: "${MINIO_ACCESS_KEY_ID:?missing}"
-      MINIO_SECRET_ACCESS_KEY: "${MINIO_SECRET_ACCESS_KEY:?missing}"
+      MINIO_ACCESS_KEY_ID: "${MINIO_ACCESS_KEY_ID:-minioadmin}"
+      MINIO_SECRET_ACCESS_KEY: "${MINIO_SECRET_ACCESS_KEY:-minioadmin}"
     # ports:
     #   - "19530:19530"
     #   - "9091:9091"
@@ -187,9 +189,7 @@ services:
             - driver: nvidia
               capabilities: ["gpu"]
     healthcheck:
-      test:
-        - CMD-SHELL
-        - 'PORT_HEX="$(printf ''%04X'' 19530)"; cat /proc/net/tcp /proc/net/tcp6 2>/dev/null | grep -q ":$${PORT_HEX} "'
+      test: ["CMD-SHELL", "curl -f http://localhost:9091/healthz || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 120
@@ -225,8 +225,8 @@ services:
   milvus-minio:
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     environment:
-      MINIO_ROOT_USER: "${MINIO_ACCESS_KEY_ID:?missing}"
-      MINIO_ROOT_PASSWORD: "${MINIO_SECRET_ACCESS_KEY:?missing}"
+      MINIO_ROOT_USER: "${MINIO_ACCESS_KEY_ID:-minioadmin}"
+      MINIO_ROOT_PASSWORD: "${MINIO_SECRET_ACCESS_KEY:-minioadmin}"
     volumes:
       - milvus-minio_data:/minio_data
     command: minio server /minio_data --console-address ":9001"
@@ -235,6 +235,24 @@ services:
       interval: 30s
       timeout: 20s
       retries: 3
+    restart: unless-stopped
+
+  docling-serve:
+    image: ghcr.io/docling-project/docling-serve-cu124:latest
+    container_name: docling-serve
+    environment:
+      - DOCLING_SERVE_ENABLE_UI=true
+      - DOCLING_DEVICE=cuda
+      - DOCLING_SERVE_MAX_SYNC_WAIT=1200
+    ports:
+      - "5001:5001"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     restart: unless-stopped
 
 volumes:

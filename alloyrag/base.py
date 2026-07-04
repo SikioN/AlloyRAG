@@ -247,6 +247,7 @@ class BaseVectorStorage(StorageNameSpace, ABC):
             str | None: Suffix string e.g. "text_embedding_3_large_3072d", or None if model_name not available
         """
         import re
+        import hashlib
 
         # Check if model_name exists (model_name is optional in EmbeddingFunc)
         model_name = getattr(self.embedding_func, "model_name", None)
@@ -262,6 +263,13 @@ class BaseVectorStorage(StorageNameSpace, ABC):
 
         # Generate suffix: clean model name and append dimension
         safe_model_name = re.sub(r"[^a-zA-Z0-9_]", "_", model_name.lower())
+        
+        # If the clean model name is too long, it can cause PostgreSQL table name limits (63 chars) to be exceeded.
+        # Shorten it deterministically using an MD5 slice.
+        if len(safe_model_name) > 25:
+            model_hash = hashlib.md5(model_name.lower().encode("utf-8")).hexdigest()[:8]
+            safe_model_name = f"{safe_model_name[:15]}_{model_hash}"
+
         return f"{safe_model_name}_{embedding_dim}d"
 
     @abstractmethod

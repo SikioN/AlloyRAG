@@ -109,7 +109,7 @@ async def check_alloyrag_setup(rag_instance: AlloyRAG, verbose: bool = False) ->
         print("\n📝 To fix, run this initialization sequence:\n")
         print("  await rag.initialize_storages()")
         print(
-            "\n📚 Documentation: https://github.com/HKUDS/AlloyRAG#important-initialization-requirements"
+            "\n📚 Documentation: https://github.com/SikioN/AlloyRAG#important-initialization-requirements"
         )
 
         if warnings and verbose:

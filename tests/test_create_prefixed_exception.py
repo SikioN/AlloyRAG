@@ -4,7 +4,7 @@ Some exceptions cannot be reconstructed from their ``args`` alone because
 their constructor signatures differ (json.JSONDecodeError needs
 ``(msg, doc, pos)``; openai SDK ``APIStatusError`` subclasses need keyword-only
 ``response``/``body``). The helper must never raise while prefixing and must
-surface the original type name + message. See HKUDS/AlloyRAG #2710 and #2794.
+surface the original type name + message. See SikioN/AlloyRAG #2710 and #2794.
 """
 
 import json
