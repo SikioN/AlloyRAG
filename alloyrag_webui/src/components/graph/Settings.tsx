@@ -392,22 +392,21 @@ export default function Settings() {
               </div>
             </div> */}
 
-            {/* <Separator />
             <LabeledNumberInput
               label={t('graphPanel.sideBar.settings.maxQueryDepth')}
               min={1}
               value={graphQueryMaxDepth}
               defaultValue={3}
               onEditFinished={setGraphQueryMaxDepth}
-            /> */}
-            {/* <LabeledNumberInput
+            />
+            <LabeledNumberInput
               label={`${t('graphPanel.sideBar.settings.maxNodes')} (≤ ${backendMaxGraphNodes || 1000})`}
               min={1}
               max={backendMaxGraphNodes || 1000}
               value={graphMaxNodes}
               defaultValue={backendMaxGraphNodes || 1000}
               onEditFinished={setGraphMaxNodes}
-            /> */}
+            />
             {/* Development/Testing Section - Only visible in development mode */}
             {import.meta.env.DEV && (
               <>
