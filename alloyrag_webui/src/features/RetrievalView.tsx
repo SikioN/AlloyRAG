@@ -849,7 +849,7 @@ export default function RetrievalView() {
             size="sm"
           >
             <EraserIcon />
-            {t('retrievePanel.retrieval.clear')}
+            
           </Button>
           <div className="flex-1 relative">
             <label htmlFor="query-input" className="sr-only">
@@ -914,7 +914,7 @@ export default function RetrievalView() {
           )}
         </form>
       </div>
-      <QuerySettings />
+      {messages.length == 0 && <QuerySettings />}
     </div>
   )
 }
