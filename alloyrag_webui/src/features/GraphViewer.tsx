@@ -12,6 +12,8 @@ import {
 } from 'sigma/rendering'
 import { NodeBorderProgram } from '@sigma/node-border'
 import { EdgeCurvedArrowProgram, createEdgeCurveProgram } from '@sigma/edge-curve'
+import { Cuboid } from 'lucide-react'
+import Button from '@/components/ui/Button'
 
 import FocusOnNode from '@/components/graph/FocusOnNode'
 import LayoutsControl from '@/components/graph/LayoutsControl'
@@ -30,7 +32,7 @@ import LegendButton from '@/components/graph/LegendButton'
 import { useSettingsStore } from '@/stores/settings'
 import { useGraphStore } from '@/stores/graph'
 import useIsDarkMode from '@/hooks/useIsDarkMode'
-import { labelColorDarkTheme, labelColorLightTheme, edgeColorDarkTheme, EDGE_PERF_LIMIT } from '@/lib/constants'
+import { labelColorDarkTheme, labelColorLightTheme, edgeColorDarkTheme, EDGE_PERF_LIMIT, controlButtonVariant } from '@/lib/constants'
 
 import '@react-sigma/core/lib/style.css'
 import '@react-sigma/graph-search/lib/style.css'
@@ -279,6 +281,14 @@ const GraphViewer = () => {
           <LayoutsControl />
           <ZoomControl />
           <FullScreenControl />
+          <Button
+            onClick={() => useSettingsStore.getState().setCurrentTab('knowledge-graph-3d')}
+            variant={controlButtonVariant}
+            size="icon"
+            tooltip="Switch to 3D View"
+          >
+            <Cuboid className="h-4 w-4" />
+          </Button>
           <LegendButton />
           <Settings />
           {/* <ThemeToggle /> */}

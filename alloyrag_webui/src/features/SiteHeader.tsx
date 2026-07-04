@@ -18,12 +18,17 @@ interface NavigationTabProps {
 }
 
 function NavigationTab({ value, currentTab, children }: NavigationTabProps) {
+  const isActive =
+    value === 'knowledge-graph-3d'
+      ? currentTab === 'knowledge-graph' || currentTab === 'knowledge-graph-3d'
+      : currentTab === value
+
   return (
     <TabsTrigger
       value={value}
       className={cn(
         'cursor-pointer px-2 py-1 transition-all',
-        currentTab === value ? '!bg-indigo-400 !text-zinc-50' : 'hover:bg-background/60'
+        isActive ? '!bg-indigo-400 !text-zinc-50' : 'hover:bg-background/60'
       )}
     >
       {children}
@@ -41,11 +46,11 @@ function TabsNavigation() {
         <NavigationTab value="retrieval" currentTab={currentTab}>
           {t('header.retrieval')}
         </NavigationTab>
-        <NavigationTab value="knowledge-graph" currentTab={currentTab}>
+        {/* <NavigationTab value="knowledge-graph" currentTab={currentTab}>
           {t('header.knowledgeGraph')}
-        </NavigationTab>
+        </NavigationTab> */}
         <NavigationTab value="knowledge-graph-3d" currentTab={currentTab}>
-          {t('header.knowledgeGraph3D')} 
+          {t('header.knowledgeGraph')} 
         </NavigationTab>
         <NavigationTab value="documents" currentTab={currentTab}>
           {t('header.documents')}

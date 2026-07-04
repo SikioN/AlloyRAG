@@ -284,7 +284,7 @@ const NodePropertiesView = ({ node, pipelineBusy }: { node: NodeType; pipelineBu
               <Lock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
             </Button>
           )}
-          <Button
+          {/* <Button
             size="icon"
             variant="ghost"
             className="h-7 w-7 border border-gray-400 hover:bg-gray-200 dark:border-gray-600 dark:hover:bg-gray-700"
@@ -301,7 +301,7 @@ const NodePropertiesView = ({ node, pipelineBusy }: { node: NodeType; pipelineBu
             tooltip={t('graphPanel.propertiesView.node.pruneNode')}
           >
             <Scissors className="h-4 w-4 text-gray-900 dark:text-gray-300" />
-          </Button>
+          </Button> */}
         </div>
       </div>
       <div className="bg-primary/5 max-h-96 overflow-auto rounded p-1">

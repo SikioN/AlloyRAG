@@ -12,6 +12,10 @@ import Settings from '@/components/graph/Settings';
 import PropertiesView from '@/components/graph/PropertiesView';
 import { useSettingsStore } from '@/stores/settings';
 import { useGraphStore } from '@/stores/graph';
+import Button from '@/components/ui/Button';
+import { Network } from 'lucide-react';
+import { Separator } from '@radix-ui/react-select';
+import { controlButtonVariant } from '@/lib/constants';
 
 // Define custom interfaces for nodes and links by extending the base types
 interface GraphNode extends NodeObject {
@@ -191,8 +195,16 @@ const Graph3DViewer: React.FC<Graph3DViewerProps> = ({ graph }) => {
         <GraphLabels />
         {/* Search functionality to be implemented */}
       </div>
-
+      
       <div className="bg-background/60 absolute bottom-2 left-2 flex flex-col rounded-xl border-2 backdrop-blur-lg">
+        <Button
+          onClick={() => useSettingsStore.getState().setCurrentTab('knowledge-graph')}
+          size="icon"
+          tooltip="Switch to 2D View"
+          variant={controlButtonVariant}
+        >
+          <Network className="h-4 w-4" />
+        </Button>
         <LegendButton />
         <Settings />
       </div>
