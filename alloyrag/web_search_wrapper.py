@@ -65,14 +65,33 @@ def estimate_context_sufficiency(context: str | None, query: str) -> float:
         "что", "как", "где", "почему", "какой", "который", "это", "при", "и", "в", "на", "с", "по",
         "the", "is", "are", "what", "how", "why", "where", "a", "an", "and", "in", "on", "with", "by",
     }
-    query_words = {w.lower() for w in query.split() if w.lower() not in stop_words}
+    
+    # Очищаем запрос от знаков пунктуации
+    import string
+    cleaned_query = query.translate(str.maketrans("", "", string.punctuation))
+    
+    query_words = {w.lower() for w in cleaned_query.split() if w.lower() not in stop_words}
     if not query_words:
         return 0.5
 
     context_lower = context.lower()
-    matched = sum(1 for w in query_words if w in context_lower)
+    
+    # Легковесный эвристический стемминг для русского языка (срезаем окончания)
+    def get_stem(word: str) -> str:
+        if len(word) > 5:
+            return word[:-2]  # срезаем типичные окончания из 2 букв (ые, ами, ов, ах, ия, ям)
+        elif len(word) > 3:
+            return word[:-1]  # срезаем 1 букву (а, ы, и, е, у, я)
+        return word
+
+    matched = 0
+    for w in query_words:
+        stem = get_stem(w)
+        if stem in context_lower:
+            matched += 1
+            
     score = matched / len(query_words)
-    logger.debug(f"[web_search] Context score={score:.2f} ({matched}/{len(query_words)} words matched)")
+    logger.info(f"[web_search] Context score={score:.2f} ({matched}/{len(query_words)} words matched, query_words={query_words})")
     return score
 
 
