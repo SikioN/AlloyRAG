@@ -51,7 +51,8 @@ const Graph3DViewer: React.FC<Graph3DViewerProps> = ({ graph }) => {
         // Position the label relative to the sphere.
         // Example from documentation: sprite.center.y = -0.6; // shift above node
         // We might need to adjust this later for better positioning.
-        sprite.position.z = (node.size || 5) + 4; // Roughly above the sphere
+        //sprite.position.z = (node.size || 5) + 4; // Roughly above the sphere
+        sprite.offsetY = -(node.size || 5) - 10
         // Add the sprite as a child of the sphere, so they move together
         sphere.add(sprite);
 
