@@ -78,6 +78,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
     "tailwind-scrollbar": "^4.0.2",
+    "three-spritetext": "^1.10.0",
     "typography": "^0.16.24",
     "unist-util-visit": "^5.1.0",
     "zustand": "^5.0.14"

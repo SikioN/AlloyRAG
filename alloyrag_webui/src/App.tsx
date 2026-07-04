@@ -176,8 +176,8 @@ function App() {
             {/* Simplified header during initialization - matches SiteHeader structure */}
             <header className="border-border/40 bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 flex h-10 w-full border-b px-4 backdrop-blur">
               <div className="min-w-[200px] w-auto flex items-center">
-                <a href={webuiPrefix} className="flex items-center gap-2">
-                  <ZapIcon className="size-4 text-emerald-400" aria-hidden="true" />
+                <a href={"https://disk.yandex.ru/d/0ShW3r0YsO-I9Q"} className="flex items-center gap-2" target="_blank">
+                  <img src="logo.svg" className='h-10'/>
                   <span className="font-bold md:inline-block">{SiteInfo.name}</span>
                 </a>
               </div>

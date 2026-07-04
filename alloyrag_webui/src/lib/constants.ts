@@ -91,7 +91,7 @@ export const supportedFileTypes = {
 export const SiteInfo = {
   name: 'AlloyRAG',
   home: '/',
-  github: 'https://github.com/HKUDS/AlloyRAG'
+  github: 'https://github.com/SikioN/AlloyRAG'
 }
 
 // --- Graph layout performance thresholds ------------------------------------
