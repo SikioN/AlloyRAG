@@ -29,18 +29,20 @@ async def search_web(query: str, max_results: int = 5) -> list[dict]:
 
 async def _search_duckduckgo(query: str, max_results: int) -> list[dict]:
     """
-    Async DuckDuckGo — бесплатно, без API ключей.
-    Source: https://pypi.org/project/duckduckgo-search/
+    DuckDuckGo search using ddgs package (non-blocking thread pool execution).
     """
     try:
-        from duckduckgo_search import AsyncDDGS
-        results = []
-        async with AsyncDDGS() as ddgs:
-            async for r in ddgs.text(query, max_results=max_results):
-                results.append(r)
+        import asyncio
+        from duckduckgo_search import DDGS
+        
+        def sync_search():
+            with DDGS() as ddgs:
+                return list(ddgs.text(query, max_results=max_results))
+                
+        results = await asyncio.to_thread(sync_search)
         return results
     except Exception as e:
-        logger.error(f"[web_search] DuckDuckGo failed: {e}")
+        logger.error(f"[web_search] DDGS search failed: {e}")
         return []
 
 

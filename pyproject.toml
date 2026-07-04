@@ -159,7 +159,7 @@ observability = [
 ]
 
 web-search = [
-    "duckduckgo-search>=8.0",
+    "ddgs>=9.0",
 ]
 
 
