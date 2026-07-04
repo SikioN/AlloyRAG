@@ -450,19 +450,6 @@ async def health():
 # Register standard routers from alloyrag
 rag_instance = get_rag_instance()
 
-# Monkey-patch RAG query implementation to support web search fallback globally (including WebUI)
-original_aquery_llm = rag_instance.aquery_llm
-
-async def patched_aquery_llm(query, param, system_prompt=None):
-    web_enabled = os.getenv("WEB_SEARCH_FALLBACK_ENABLE", "false").lower() == "true"
-    if not web_enabled or param.mode == "bypass" or param.only_need_context:
-        return await original_aquery_llm(query, param, system_prompt)
-        
-    from alloyrag.web_search_wrapper import hybrid_query
-    return await hybrid_query(rag_instance, query, mode=param.mode)
-
-rag_instance.aquery_llm = patched_aquery_llm
-
 doc_manager_instance = DocumentManager("./inputs")
 api_key_val = os.getenv("ALLOYRAG_API_KEY")
 
