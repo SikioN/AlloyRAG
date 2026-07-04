@@ -101,7 +101,7 @@ const useSettingsStoreBase = create<SettingsState>()(
       maxEdgeSize: 1,
 
       graphQueryMaxDepth: 3,
-      graphMaxNodes: 1000,
+      graphMaxNodes: 100,
       backendMaxGraphNodes: null,
 
       queryLabel: defaultQueryLabel,
