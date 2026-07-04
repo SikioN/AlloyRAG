@@ -127,9 +127,9 @@ async def hybrid_query(rag, query: str, mode: str = "hybrid") -> dict:
     score = estimate_context_sufficiency(context_text, query)
     logger.info(f"[hybrid_query] score={score:.2f}, threshold={threshold}")
 
-    # ── Шаг 3a: Контекст достаточен → обычный запрос ─────────────────────────
-    if score >= 0.7:
-        logger.info("[hybrid_query] Source: knowledge_base")
+    # ── Шаг 3a: Если в базе знаний есть хоть какая-то информация (score > 0.0), используем только базу ──
+    if score > 0.0:
+        logger.info(f"[hybrid_query] Source: knowledge_base (score={score:.2f} > 0.0)")
         return await rag.aquery_llm(
             query,
             param=QueryParam(mode=mode, enable_rerank=False, stream=False),
