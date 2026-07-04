@@ -22,6 +22,9 @@ services:
         max_attempts: 10
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     environment:
       # The container must listen on 0.0.0.0 to be reachable via the published port.
       # SECURITY: set ALLOYRAG_API_KEY (or AUTH_ACCOUNTS with TOKEN_SECRET) in .env
@@ -45,6 +48,10 @@ services:
       OPENSEARCH_HOSTS: "host.docker.internal:9200"
       MONGO_URI: "mongodb://root:root@host.docker.internal:27017/"
       DOCLING_ENDPOINT: "http://docling-serve:5001"
+      WEB_SEARCH_FALLBACK_ENABLE: "${WEB_SEARCH_FALLBACK_ENABLE:-false}"
+      WEB_SEARCH_CONFIDENCE_THRESHOLD: "${WEB_SEARCH_CONFIDENCE_THRESHOLD:-0.3}"
+      WEB_SEARCH_MAX_RESULTS: "${WEB_SEARCH_MAX_RESULTS:-5}"
+      WEB_SEARCH_ENGINE: "${WEB_SEARCH_ENGINE:-duckduckgo}"
     depends_on:
       vllm-embed:
         condition: service_healthy

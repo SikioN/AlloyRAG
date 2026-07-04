@@ -103,30 +103,44 @@ async def query_rag(request: QueryRequest):
         logger.info(f"Querying RAG in '{request.mode}' mode: {request.query}")
 
         from alloyrag import QueryParam
+        from alloyrag.web_search_wrapper import hybrid_query
 
-        answer = await rag.aquery(
-            request.query,
-            param=QueryParam(
-                mode=request.mode,
-                enable_rerank=False,  # Disable rerank (no rerank model configured)
-            ),
-        )
+        web_enabled = os.getenv("WEB_SEARCH_FALLBACK_ENABLE", "false").lower() == "true"
 
-        # Handle case where LLM returns None (e.g. timeout, context overflow)
-        if answer is None:
-            logger.error(
-                "RAG query returned None - possible LLM timeout or context overflow"
-            )
-            # Retry with simpler naive mode as fallback
-            logger.info("Retrying with naive mode as fallback...")
+        if web_enabled:
+            result = await hybrid_query(rag, request.query, mode=request.mode)
+            answer = result.get("llm_response", {}).get("content") or ""
+
+            # Добавляем источники если ответ из интернета
+            web_urls = result.get("_web_urls", [])
+            web_source = result.get("_web_source", "knowledge_base")
+            if web_source != "knowledge_base" and web_urls:
+                url_list = "\n".join(f"• {u}" for w, u in enumerate(web_urls) if u)
+                answer += f"\n\n---\n📌 Источники из интернета:\n{url_list}"
+        else:
             answer = await rag.aquery(
-                request.query, param=QueryParam(mode="naive", enable_rerank=False)
+                request.query,
+                param=QueryParam(
+                    mode=request.mode,
+                    enable_rerank=False,  # Disable rerank (no rerank model configured)
+                ),
             )
+
+            # Handle case where LLM returns None (e.g. timeout, context overflow)
             if answer is None:
-                raise HTTPException(
-                    status_code=503,
-                    detail="LLM did not respond. Possibly overloaded or context too long. Try a simpler query.",
+                logger.error(
+                    "RAG query returned None - possible LLM timeout or context overflow"
                 )
+                # Retry with simpler naive mode as fallback
+                logger.info("Retrying with naive mode as fallback...")
+                answer = await rag.aquery(
+                    request.query, param=QueryParam(mode="naive", enable_rerank=False)
+                )
+                if answer is None:
+                    raise HTTPException(
+                        status_code=503,
+                        detail="LLM did not respond. Possibly overloaded or context too long. Try a simpler query.",
+                    )
 
         return {"answer": answer, "mode": request.mode}
     except HTTPException:

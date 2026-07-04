@@ -42,7 +42,7 @@ COPY uv.lock .
 
 # Install base, API, and offline extras without the project to improve caching
 RUN \
-    uv sync --frozen --no-dev --extra api --extra offline-storage --no-install-project --no-editable
+    uv sync --frozen --no-dev --extra api --extra offline-storage --extra web-search --no-install-project --no-editable
 
 # Copy project sources after dependency layer
 COPY alloyrag/ ./alloyrag/
@@ -55,7 +55,7 @@ COPY --from=frontend-builder /app/alloyrag/api/webui ./alloyrag/api/webui
 
 # Sync project in non-editable mode and ensure pip is available for runtime installs
 RUN \
-    uv sync --frozen --no-dev --extra api --extra offline-storage --no-editable \
+    uv sync --frozen --no-dev --extra api --extra offline-storage --extra web-search --no-editable \
     && /app/.venv/bin/python -m ensurepip --upgrade
 
 # Prepare offline cache directory and pre-populate tiktoken data
@@ -93,7 +93,7 @@ ENV PATH=/app/.venv/bin:/root/.local/bin:$PATH
 # Install dependencies with uv sync (uses locked versions from uv.lock)
 # And ensure pip is available for runtime installs
 RUN \
-    uv sync --frozen --no-dev --extra api --extra offline-storage --no-editable \
+    uv sync --frozen --no-dev --extra api --extra offline-storage --extra web-search --no-editable \
     && /app/.venv/bin/python -m ensurepip --upgrade
 
 # Create persistent data directories AFTER package installation

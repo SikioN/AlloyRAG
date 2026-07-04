@@ -9,3 +9,4 @@ python-dotenv
 python-pptx
 sentence-transformers
 trafilatura
+duckduckgo-search>=8.0

@@ -158,6 +158,11 @@ observability = [
     "langfuse>=3.8.1",
 ]
 
+web-search = [
+    "duckduckgo-search>=8.0",
+]
+
+
 [project.scripts]
 alloyrag-server = "alloyrag.api.alloyrag_server:main"
 alloyrag-gunicorn = "alloyrag.api.run_with_gunicorn:main"

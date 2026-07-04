@@ -42,7 +42,7 @@ COPY uv.lock .
 
 # Install project dependencies (base + API extras) without the project to improve caching
 RUN \
-    uv sync --frozen --no-dev --extra api --no-install-project --no-editable
+    uv sync --frozen --no-dev --extra api --extra web-search --no-install-project --no-editable
 
 # Copy project sources after dependency layer
 COPY alloyrag/ ./alloyrag/
@@ -55,7 +55,7 @@ COPY --from=frontend-builder /app/alloyrag/api/webui ./alloyrag/api/webui
 
 # Sync project in non-editable mode and ensure pip is available for runtime installs
 RUN \
-    uv sync --frozen --no-dev --extra api --no-editable \
+    uv sync --frozen --no-dev --extra api --extra web-search --no-editable \
     && /app/.venv/bin/python -m ensurepip --upgrade
 
 # Prepare tiktoken cache directory and pre-populate tokenizer data
@@ -93,7 +93,7 @@ ENV PATH=/app/.venv/bin:/root/.local/bin:$PATH
 # Sync dependencies inside the final image using uv
 # And ensure pip is available for runtime installs
 RUN \
-    uv sync --frozen --no-dev --extra api --no-editable \
+    uv sync --frozen --no-dev --extra api --extra web-search --no-editable \
     && /app/.venv/bin/python -m ensurepip --upgrade
 
 # Create persistent data directories
