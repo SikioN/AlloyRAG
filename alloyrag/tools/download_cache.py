@@ -137,7 +137,7 @@ Examples:
   # Download specific models only
   alloyrag-download-cache --models gpt-4o-mini gpt-4
 
-For more information, visit: https://github.com/HKUDS/AlloyRAG
+For more information, visit: https://github.com/SikioN/AlloyRAG
         """,
     )
 

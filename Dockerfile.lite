@@ -1,9 +1,6 @@
-# syntax=docker/dockerfile:1
-
 # Frontend build stage
-# Build frontend assets on the native build platform to avoid
-# cross-architecture emulation issues during multi-platform builds.
-FROM --platform=$BUILDPLATFORM oven/bun:1 AS frontend-builder
+# Build frontend assets
+FROM oven/bun:1 AS frontend-builder
 
 WORKDIR /app
 
@@ -11,8 +8,7 @@ WORKDIR /app
 COPY alloyrag_webui/ ./alloyrag_webui/
 
 # Build frontend assets for inclusion in the API package
-RUN --mount=type=cache,target=/root/.bun/install/cache \
-    cd alloyrag_webui \
+RUN cd alloyrag_webui \
     && bun install --frozen-lockfile \
     && bun run build
 
@@ -45,20 +41,21 @@ COPY setup.py .
 COPY uv.lock .
 
 # Install project dependencies (base + API extras) without the project to improve caching
-RUN --mount=type=cache,target=/root/.local/share/uv \
-    uv sync --frozen --no-dev --extra api --no-install-project --no-editable
+RUN \
+    uv sync --frozen --no-dev --extra api --extra web-search --no-install-project --no-editable
 
 # Copy project sources after dependency layer
 COPY alloyrag/ ./alloyrag/
 COPY app.py .
+COPY scripts/ ./scripts/
 
 
 # Include pre-built frontend assets from the previous stage
 COPY --from=frontend-builder /app/alloyrag/api/webui ./alloyrag/api/webui
 
 # Sync project in non-editable mode and ensure pip is available for runtime installs
-RUN --mount=type=cache,target=/root/.local/share/uv \
-    uv sync --frozen --no-dev --extra api --no-editable \
+RUN \
+    uv sync --frozen --no-dev --extra api --extra web-search --no-editable \
     && /app/.venv/bin/python -m ensurepip --upgrade
 
 # Prepare tiktoken cache directory and pre-populate tokenizer data
@@ -85,6 +82,7 @@ COPY --from=builder /root/.local /root/.local
 COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/alloyrag ./alloyrag
 COPY --from=builder /app/app.py ./app.py
+COPY --from=builder /app/scripts ./scripts
 COPY pyproject.toml .
 COPY setup.py .
 COPY uv.lock .
@@ -94,8 +92,8 @@ ENV PATH=/app/.venv/bin:/root/.local/bin:$PATH
 
 # Sync dependencies inside the final image using uv
 # And ensure pip is available for runtime installs
-RUN --mount=type=cache,target=/root/.local/share/uv \
-    uv sync --frozen --no-dev --extra api --no-editable \
+RUN \
+    uv sync --frozen --no-dev --extra api --extra web-search --no-editable \
     && /app/.venv/bin/python -m ensurepip --upgrade
 
 # Create persistent data directories

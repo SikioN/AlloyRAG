@@ -73,7 +73,7 @@ class StorageNotInitializedError(RuntimeError):
             f"  rag = AlloyRAG(...)\n"
             f"  await rag.initialize_storages()  # Required - auto-initializes pipeline_status\n"
             f"\n"
-            f"See: https://github.com/HKUDS/AlloyRAG#important-initialization-requirements"
+            f"See: https://github.com/SikioN/AlloyRAG#important-initialization-requirements"
         )
 
 

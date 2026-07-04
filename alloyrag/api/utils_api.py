@@ -134,7 +134,7 @@ def get_combined_auth_dependency(api_key: Optional[str] = None):
                 return  # Whitelist path, allow access
 
         # 2. Validate token first if provided in the request (Ensure 401 error if token is invalid)
-        if token:
+        if token and (auth_configured or api_key_configured):
             try:
                 token_info = auth_handler.validate_token(token)
 

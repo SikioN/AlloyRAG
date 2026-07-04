@@ -27,7 +27,6 @@ Makefile
 
 # Exclude other projects
 /tests
-/scripts
 /data
 /dickens
 /reproduce

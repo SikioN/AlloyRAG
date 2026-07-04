@@ -1,0 +1,20 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "venv",
+    "alloyrag",
+    "vectordb",
+    "uvicorn",
+    "cairosvg",
+    "defusedxml",
+    "asyncpg",
+    "pgvector",
+    "pymilvus"
+  ],
+  "ignorePaths": [
+    "node_modules",
+    ".git",
+    ".venv"
+  ]
+}

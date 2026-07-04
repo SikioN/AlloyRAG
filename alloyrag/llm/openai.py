@@ -1,5 +1,6 @@
 from ..utils import verbose_debug, VERBOSE_DEBUG
 import os
+import asyncio
 import logging
 import warnings
 
@@ -71,6 +72,26 @@ except ImportError:
 load_dotenv(dotenv_path=".env", override=False)
 
 
+_yandex_embeddings_sem = None
+_yandex_completions_sem = None
+
+
+def _get_yandex_embeddings_sem():
+    global _yandex_embeddings_sem
+    if _yandex_embeddings_sem is None:
+        # Limit to 5 concurrent tokenize/embedding API calls to prevent Yandex 429
+        _yandex_embeddings_sem = asyncio.Semaphore(5)
+    return _yandex_embeddings_sem
+
+
+def _get_yandex_completions_sem():
+    global _yandex_completions_sem
+    if _yandex_completions_sem is None:
+        # Limit to 7 concurrent generation sessions to stay under Yandex 10 concurrent requests limit
+        _yandex_completions_sem = asyncio.Semaphore(7)
+    return _yandex_completions_sem
+
+
 class InvalidResponseError(Exception):
     """Custom exception class for triggering retry mechanism"""
 
@@ -108,6 +129,12 @@ _TIKTOKEN_ENCODING_CACHE: dict[str, Any] = {}
 # Base64 is more efficient over the wire; set EMBEDDING_USE_BASE64=false for
 # providers that don't support it (e.g. Yandex Cloud).
 EMBEDDING_USE_BASE64: bool = os.getenv("EMBEDDING_USE_BASE64", "true").lower() in (
+    "true",
+    "1",
+    "yes",
+)
+
+EMBEDDING_SEND_DIM: bool = os.getenv("EMBEDDING_SEND_DIM", "false").lower() in (
     "true",
     "1",
     "yes",
@@ -224,7 +251,7 @@ def create_openai_async_client(
 
 # TODO LengthFinishReasonError should not persist into LLM cache
 @retry(
-    stop=stop_after_attempt(3),
+    stop=stop_after_attempt(15),
     wait=wait_exponential(multiplier=1, min=4, max=10),
     retry=(
         retry_if_exception_type(RateLimitError)
@@ -428,14 +455,16 @@ async def openai_complete_if_cache(
     api_model = azure_deployment if use_azure and azure_deployment else model
 
     try:
-        # Single dispatch: create() covers the dict-based response_format
-        # payloads used by this project. Typed/Pydantic helpers are rejected
-        # above. Length-truncation is detected via finish_reason below and the
-        # raw content is returned unchanged so upstream tolerant JSON parsing
-        # can still salvage it.
-        response = await openai_async_client.chat.completions.create(
-            model=api_model, messages=messages, **kwargs
-        )
+        is_yandex = base_url and ("yandex" in base_url or "yandex" in model)
+        if is_yandex:
+            async with _get_yandex_completions_sem():
+                response = await openai_async_client.chat.completions.create(
+                    model=api_model, messages=messages, **kwargs
+                )
+        else:
+            response = await openai_async_client.chat.completions.create(
+                model=api_model, messages=messages, **kwargs
+            )
     except APITimeoutError as e:
         logger.error(f"OpenAI API Timeout Error: {e}")
         try:
@@ -883,7 +912,7 @@ async def nvidia_openai_complete(
     supports_asymmetric=True,
 )
 @retry(
-    stop=stop_after_attempt(3),
+    stop=stop_after_attempt(10),
     wait=wait_exponential(multiplier=1, min=4, max=60),
     retry=(
         retry_if_exception_type(RateLimitError)
@@ -1018,12 +1047,106 @@ async def openai_embed(
         # OpenAI client defaults to base64, so we must explicitly set it to "float" if disabled
         api_params["encoding_format"] = "base64" if EMBEDDING_USE_BASE64 else "float"
 
-        # Add dimensions parameter only if embedding_dim is provided
-        if embedding_dim is not None:
+        # Add dimensions parameter only if embedding_dim is provided and EMBEDDING_SEND_DIM is true
+        if embedding_dim is not None and EMBEDDING_SEND_DIM:
             api_params["dimensions"] = embedding_dim
 
-        # Make API call
-        response = await openai_async_client.embeddings.create(**api_params)
+        # Yandex Cloud only supports embedding exactly one string per request.
+        # Check if the provider is Yandex Cloud based on host or model name.
+        is_yandex = base_url and ("yandex" in base_url or "yandex" in model)
+
+        if is_yandex:
+            # Yandex Cloud hard limit: 2048 tokens per embedding request.
+            # Tiktoken uses GPT-4 vocabulary which is different from Yandex's tokenizer,
+            # so we must use Yandex's own free Tokenize API to count tokens precisely.
+            _YANDEX_TOKEN_LIMIT = 2000  # safe margin below the 2048 hard limit
+            import httpx
+
+            _tokenize_url = "https://llm.api.cloud.yandex.net/foundationModels/v1/tokenize"
+            _tok_headers = {
+                "Authorization": f"Api-Key {api_key}",
+                "Content-Type": "application/json",
+            }
+
+            async def _count_yandex_tokens(text: str, client: httpx.AsyncClient) -> int:
+                """Count tokens using the free Yandex Tokenize API (billed at zero cost)."""
+                payload = {"modelUri": model, "text": text}
+                async with _get_yandex_embeddings_sem():
+                    resp = await client.post(_tokenize_url, json=payload, headers=_tok_headers)
+                    resp.raise_for_status()
+                return len(resp.json().get("tokens", []))
+
+            async def _truncate_to_yandex_limit(text: str, client: httpx.AsyncClient) -> str:
+                """Truncate text to fit within Yandex token limit using binary search.
+
+                Uses the Yandex Tokenize API for exact token counting. Falls back to
+                a conservative character-based truncation if the tokenizer is unavailable.
+                Binary search completes in O(log N) tokenize calls (~13 for 50k chars).
+                """
+                try:
+                    token_count = await _count_yandex_tokens(text, client)
+                    if token_count <= _YANDEX_TOKEN_LIMIT:
+                        return text
+                    # Binary search for the maximum safe character length
+                    low, high = 0, len(text)
+                    while low < high - 10:
+                        mid = (low + high) // 2
+                        count = await _count_yandex_tokens(text[:mid], client)
+                        if count <= _YANDEX_TOKEN_LIMIT:
+                            low = mid
+                        else:
+                            high = mid
+                    truncated = text[:low]
+                    logger.info(
+                        f"Yandex embed: text truncated from {len(text)} to {len(truncated)} chars "
+                        f"({token_count} → ≤{_YANDEX_TOKEN_LIMIT} Yandex tokens)"
+                    )
+                    return truncated
+                except Exception as e:
+                    # Fallback: conservative char-based limit.
+                    # Calibration shows ~6.5 chars/token for Russian, ~4 for mixed.
+                    # Use 8000 chars → ~1230 tokens worst-case for mixed content.
+                    logger.warning(
+                        f"Yandex tokenizer API failed ({e}), "
+                        "falling back to 8000-char conservative truncation"
+                    )
+                    return text[:8000]
+
+            # Execute embedding requests in parallel, sharing one tokenize HTTP session
+            async with httpx.AsyncClient(timeout=15.0) as tok_client:
+                async def embed_single(text):
+                    text = await _truncate_to_yandex_limit(text, tok_client)
+                    single_params = {**api_params, "input": [text]}
+                    async with _get_yandex_embeddings_sem():
+                        return await openai_async_client.embeddings.create(**single_params)
+
+                tasks = [embed_single(text) for text in texts]
+                responses = await asyncio.gather(*tasks)
+            
+            # Combine response data
+            combined_data = []
+            total_prompt_tokens = 0
+            total_tokens = 0
+            
+            for resp in responses:
+                combined_data.extend(resp.data)
+                if hasattr(resp, "usage") and resp.usage:
+                    total_prompt_tokens += getattr(resp.usage, "prompt_tokens", 0)
+                    total_tokens += getattr(resp.usage, "total_tokens", 0)
+            
+            # Mock a single response object for downstream parsing
+            class MockResponse:
+                def __init__(self, data, prompt_tokens, total_tokens):
+                    self.data = data
+                    self.usage = type('Usage', (), {
+                        'prompt_tokens': prompt_tokens,
+                        'total_tokens': total_tokens
+                    })()
+            
+            response = MockResponse(combined_data, total_prompt_tokens, total_tokens)
+        else:
+            # Standard batch call
+            response = await openai_async_client.embeddings.create(**api_params)
 
         if token_tracker and hasattr(response, "usage"):
             token_counts = {

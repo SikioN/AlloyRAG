@@ -59,14 +59,23 @@ def parse_pdf_via_docling(filepath: str) -> str | None:
     url = f"{endpoint}/v1/convert/file"
     logger.info(f"Parsing PDF '{filepath}' via Docling Serve ({url})...")
 
+    # Read configuration from environment variables
+    do_ocr = os.getenv("DOCLING_DO_OCR", "true").lower() in ("true", "1", "yes")
+    force_ocr = os.getenv("DOCLING_FORCE_OCR", "false").lower() in ("true", "1", "yes")
+    timeout_val = int(os.getenv("DOCLING_TIMEOUT", "1200"))
+
     try:
         with open(filepath, "rb") as f:
             files = {"files": (os.path.basename(filepath), f, "application/pdf")}
             # Request markdown format specifically
-            options = {"to_formats": ["markdown"], "do_ocr": True}
+            options = {
+                "to_formats": ["markdown"],
+                "do_ocr": do_ocr,
+                "force_ocr": force_ocr,
+            }
             data = {"options": json.dumps(options)}
 
-            response = httpx.post(url, files=files, data=data, timeout=120)
+            response = httpx.post(url, files=files, data=data, timeout=timeout_val)
             if response.status_code == 200:
                 res_json = response.json()
                 doc = res_json.get("document", {})
@@ -275,6 +284,8 @@ async def ascan_and_ingest_inputs():
         return
 
     logger.info(f"Found {len(files_in_dir)} file(s) in inputs.")
+    rag = get_rag_instance()
+    await rag.initialize_storages()
     states_changed = False
 
     for filepath in files_in_dir:
@@ -282,14 +293,26 @@ async def ascan_and_ingest_inputs():
         current_md5 = calculate_md5(filepath)
         mtime = os.path.getmtime(filepath)
 
-        # Check if already processed
+        # Check if already processed and exists in DB
         state = states.get(filepath)
+        doc_id = os.path.basename(filepath)
+        db_doc = await rag.doc_status.get_by_id(doc_id)
+        
+        db_status = ""
+        if db_doc:
+            db_status_raw = db_doc.get("status", "")
+            if hasattr(db_status_raw, "value"):
+                db_status = db_status_raw.value
+            else:
+                db_status = str(db_status_raw)
+
         if (
             state
             and state.get("md5") == current_md5
             and state.get("status") == "success"
+            and db_status == "processed"
         ):
-            logger.info(f"File '{filename}' is unchanged. Skipping.")
+            logger.info(f"File '{filename}' is unchanged and successfully processed. Skipping.")
             continue
 
         logger.info(f"Processing new or changed file: '{filename}'...")

@@ -148,7 +148,7 @@ def extract_excel_to_kg(filepath: str) -> dict | None:
             custom_kg["entities"].append(
                 {
                     "entity_name": alloy,
-                    "entity_type": "Alloy",
+                    "entity_type": "Material",
                     "description": alloy_desc,
                     "source_id": doc_id,
                     "file_path": filepath,
@@ -179,7 +179,7 @@ def extract_excel_to_kg(filepath: str) -> dict | None:
             custom_kg["entities"].append(
                 {
                     "entity_name": mode_entity,
-                    "entity_type": "Mode",
+                    "entity_type": "Process",
                     "description": f"Режим обработки для эксперимента {exp_id} сплава {alloy}: {mode}.",
                     "source_id": doc_id,
                     "file_path": filepath,
@@ -225,7 +225,7 @@ def extract_excel_to_kg(filepath: str) -> dict | None:
                 custom_kg["entities"].append(
                     {
                         "entity_name": researcher,
-                        "entity_type": "ResearchTeam",
+                        "entity_type": "Expert",
                         "description": f"Исследователь/команда: {researcher}.",
                         "source_id": doc_id,
                         "file_path": filepath,

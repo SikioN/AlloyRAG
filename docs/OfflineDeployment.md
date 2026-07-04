@@ -303,7 +303,7 @@ mkdir -p ~/my_tiktoken_cache
 
 ## Additional Resources
 
-- [AlloyRAG GitHub Repository](https://github.com/HKUDS/AlloyRAG)
+- [AlloyRAG GitHub Repository](https://github.com/SikioN/AlloyRAG)
 - [Docker Deployment Guide](./DockerDeployment.md)
 - [API Server Documentation](./AlloyRAG-API-Server.md)
 
@@ -311,6 +311,6 @@ mkdir -p ~/my_tiktoken_cache
 
 If you encounter issues not covered in this guide:
 
-1. Check the [GitHub Issues](https://github.com/HKUDS/AlloyRAG/issues)
+1. Check the [GitHub Issues](https://github.com/SikioN/AlloyRAG/issues)
 2. Review the [project documentation](../README.md)
 3. Create a new issue with your offline deployment details
