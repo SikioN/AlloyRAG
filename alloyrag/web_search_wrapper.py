@@ -33,7 +33,7 @@ async def _search_duckduckgo(query: str, max_results: int) -> list[dict]:
     """
     try:
         import asyncio
-        from duckduckgo_search import DDGS
+        from ddgs import DDGS
         
         def sync_search():
             with DDGS() as ddgs:
