@@ -86,16 +86,16 @@ export default function SiteHeader() {
       <div className="min-w-[20px] w-auto flex items-center">
         <a href={"https://disk.yandex.ru/d/0ShW3r0YsO-I9Q"} className="flex items-center gap-2" target="_blank">
           <img src="logo.svg" className='h-10'/>
-          <h1 className="font-bold text-xl md:inline-block">{SiteInfo.name}</h1>
+          <h1 className="font-bold text-l md:inline-block">{SiteInfo.name}</h1>
         </a>
-        {webuiTitle && (
+        
           <div className="flex items-center">
             <span className="mx-1 text-xs text-gray-500 dark:text-gray-400">|</span>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="font-medium text-sm cursor-default">
-                    {webuiTitle}
+                    Научный клубок
                   </span>
                 </TooltipTrigger>
                 {webuiDescription && (
@@ -106,7 +106,7 @@ export default function SiteHeader() {
               </Tooltip>
             </TooltipProvider>
           </div>
-        )}
+        
       </div>
 
       <div className="flex h-12 flex-1 items-center justify-center">
