@@ -179,10 +179,18 @@ async def hybrid_query(rag, query: str, mode: str = "hybrid") -> dict:
     result["_web_urls"] = [r.get("href", r.get("url", "")) for r in web_results]
     
     # Автоматически прикрепляем источники к тексту ответа для всех клиентов (включая WebUI)
+    # Используем стандартный формат RAG для источников (### References и списки вида - [n] Web: URL)
     if source_tag != "knowledge_base" and web_results:
         content = result.get("llm_response", {}).get("content") or ""
-        url_list = "\n".join(f"• {r.get('href', r.get('url', ''))}" for r in web_results if r.get('href', r.get('url', '')))
-        if url_list:
-            result["llm_response"]["content"] = content + f"\n\n---\n📌 Источники из интернета:\n{url_list}"
+        lines = []
+        idx = 1
+        for r in web_results:
+            url = r.get('href', r.get('url', ''))
+            if url:
+                lines.append(f"- [{idx}] Web: {url}")
+                idx += 1
+        if lines:
+            sources_block = "\n\n### References\n\n" + "\n".join(lines)
+            result["llm_response"]["content"] = content + sources_block
             
     return result
