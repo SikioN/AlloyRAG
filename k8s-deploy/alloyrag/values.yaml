@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/SikioN/AlloyRAG
+  repository: ghcr.io/hkuds/alloyrag
   tag: latest
   # Optionally specify imagePullSecrets if your image is in a private registry
   # example:

@@ -2,7 +2,7 @@
 set -e
 
 # Configuration
-IMAGE_NAME="ghcr.io/SikioN/AlloyRAG"
+IMAGE_NAME="ghcr.io/hkuds/alloyrag"
 DOCKERFILE="Dockerfile"
 TAG="latest"
 

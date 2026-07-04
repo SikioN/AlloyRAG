@@ -4,7 +4,7 @@
 # You can customize your setup using the Setup Wizard; for detailed instructions, please refer to docs/InteractiveSetup.md
 services:
   alloyrag:
-    image: ghcr.io/SikioN/AlloyRAG:latest
+    image: ghcr.io/hkuds/alloyrag:latest
     build:
       context: .
       dockerfile: Dockerfile
