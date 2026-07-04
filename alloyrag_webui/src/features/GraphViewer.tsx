@@ -36,6 +36,7 @@ import { labelColorDarkTheme, labelColorLightTheme, edgeColorDarkTheme, EDGE_PER
 
 import '@react-sigma/core/lib/style.css'
 import '@react-sigma/graph-search/lib/style.css'
+import { useTranslation } from 'react-i18next'
 
 // Function to create sigma settings based on theme.
 // `enableEdgeEvents` MUST be passed in (not toggled at runtime): sigma allocates
@@ -233,6 +234,7 @@ const GraphViewer = () => {
   // but testing showed it wasn't executing or having any effect, while the backup mechanism
   // in GraphControl was sufficient. This code was removed to simplify implementation
 
+  const { t } = useTranslation();
   const onSearchFocus = useCallback((value: GraphSearchOption | null) => {
     if (value === null) useGraphStore.getState().setFocusedNode(null)
     else if (value.type === 'nodes') useGraphStore.getState().setFocusedNode(value.id)
@@ -285,7 +287,7 @@ const GraphViewer = () => {
             onClick={() => useSettingsStore.getState().setCurrentTab('knowledge-graph-3d')}
             variant={controlButtonVariant}
             size="icon"
-            tooltip="Switch to 3D View"
+            tooltip={t("graphPanel.dimensionsSwitch3D")}
           >
             <Cuboid className="h-4 w-4" />
           </Button>
