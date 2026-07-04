@@ -244,7 +244,7 @@
     "sideBar": {
       "settings": {
         "settings": "Настройки",
-        "healthCheck": "Проверка здоровья",
+        "healthCheck": "Проверка статуса",
         "showPropertyPanel": "Показать панель свойств",
         "showSearchBar": "Показать панель поиска",
         "showNodeLabel": "Показать метки узлов",

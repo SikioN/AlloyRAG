@@ -50,9 +50,9 @@ function TabsNavigation() {
         <NavigationTab value="documents" currentTab={currentTab}>
           {t('header.documents')}
         </NavigationTab>
-        <NavigationTab value="api" currentTab={currentTab}>
+        {/* <NavigationTab value="api" currentTab={currentTab}>
           {t('header.api')}
-        </NavigationTab>
+        </NavigationTab> */}
       </TabsList>
     </div>
   )

@@ -283,55 +283,55 @@ export default function Settings() {
           align="end"
           sideOffset={8}
           collisionPadding={5}
-          className="p-2 max-w-[200px]"
+          className="p-3 max-w-[300px]"
           onCloseAutoFocus={(e) => e.preventDefault()}
         >
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-4 py-2">
             <LabeledCheckBox
               checked={enableHealthCheck}
               onCheckedChange={setEnableHealthCheck}
               label={t('graphPanel.sideBar.settings.healthCheck')}
             />
 
-            <Separator />
+            {/* <Separator /> */}
 
             <LabeledCheckBox
               checked={showPropertyPanel}
               onCheckedChange={setShowPropertyPanel}
               label={t('graphPanel.sideBar.settings.showPropertyPanel')}
             />
-            <LabeledCheckBox
+            {/* <LabeledCheckBox
               checked={showNodeSearchBar}
               onCheckedChange={setShowNodeSearchBar}
               label={t('graphPanel.sideBar.settings.showSearchBar')}
-            />
+            /> */}
 
-            <Separator />
+            {/* <Separator /> */}
 
             <LabeledCheckBox
               checked={showNodeLabel}
               onCheckedChange={setShowNodeLabel}
               label={t('graphPanel.sideBar.settings.showNodeLabel')}
             />
-            <LabeledCheckBox
+            {/* <LabeledCheckBox
               checked={enableNodeDrag}
               onCheckedChange={setEnableNodeDrag}
               label={t('graphPanel.sideBar.settings.nodeDraggable')}
-            />
+            /> */}
 
-            <Separator />
+            {/* <Separator /> */}
 
             <LabeledCheckBox
               checked={showEdgeLabel}
               onCheckedChange={setShowEdgeLabel}
               label={t('graphPanel.sideBar.settings.showEdgeLabel')}
             />
-            <LabeledCheckBox
+            {/* <LabeledCheckBox
               checked={enableHideUnselectedEdges}
               onCheckedChange={setEnableHideUnselectedEdges}
               label={t('graphPanel.sideBar.settings.hideUnselectedEdges')}
-            />
-            <LabeledCheckBox
+            /> */}
+            {/* <LabeledCheckBox
               checked={enableEdgeEvents}
               onCheckedChange={setEnableEdgeEvents}
               label={t('graphPanel.sideBar.settings.edgeEvents')}
@@ -341,9 +341,9 @@ export default function Settings() {
                   ? t('graphPanel.sideBar.settings.edgeEventsDisabledHint', { count: EDGE_PERF_LIMIT })
                   : undefined
               }
-            />
+            /> */}
 
-            <div className="flex flex-col gap-2">
+            {/* <div className="flex flex-col gap-2">
               <label htmlFor="edge-size-min" className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                 {t('graphPanel.sideBar.settings.edgeSizeRange')}
               </label>
@@ -390,24 +390,24 @@ export default function Settings() {
                   </Button>
                 </div>
               </div>
-            </div>
+            </div> */}
 
-            <Separator />
+            {/* <Separator />
             <LabeledNumberInput
               label={t('graphPanel.sideBar.settings.maxQueryDepth')}
               min={1}
               value={graphQueryMaxDepth}
               defaultValue={3}
               onEditFinished={setGraphQueryMaxDepth}
-            />
-            <LabeledNumberInput
+            /> */}
+            {/* <LabeledNumberInput
               label={`${t('graphPanel.sideBar.settings.maxNodes')} (≤ ${backendMaxGraphNodes || 1000})`}
               min={1}
               max={backendMaxGraphNodes || 1000}
               value={graphMaxNodes}
               defaultValue={backendMaxGraphNodes || 1000}
               onEditFinished={setGraphMaxNodes}
-            />
+            /> */}
             {/* Development/Testing Section - Only visible in development mode */}
             {import.meta.env.DEV && (
               <>
